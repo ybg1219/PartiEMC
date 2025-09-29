@@ -2,7 +2,9 @@
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
-
+// =======================================================
+// Global Variables
+// =======================================================
 let gridSize = 32;      // 격자 크기 / Grid size
 let numParticles = 1160;// 입자 수 / Number of particles
 let cols, rows;         // 그리드 열/행 / Grid columns/rows
@@ -20,17 +22,33 @@ let emcTriangleCount = 0;
 
 let dataScaler = 800;
 
+// Data and Object Storage
 let particles;          // Particle 객체 배열 / Particle array
 let grid;               // 그리드 객체 배열 / Grid array
-
 let particleData = [];
 
+// Class Instances
 let mc;
 let emc;
+
+// Lookup Tables
 let CornerTable;
 let CornerofEdgeTable;
 
-let isReturn;
+// UI 관련 변수 / UI related variables
+let isPlaying = true; // 애니메이션 재생 상태 / Animation play state
+let speedSlider;      // 프레임 속도 슬라이더 / Frame rate slider
+let pauseButton;      // 일시정지/재생 버튼 / Pause/Play button
+let showGridCheckbox; // 그리드 표시 체크박스 / Show grid checkbox
+let showParticlesCheckbox; // 파티클 표시 체크박스 / Show particles checkbox
+let prevFrameButton;  // 이전 프레임 버튼 / Previous frame button
+let nextFrameButton;  // 다음 프레임 버튼 / Next frame button
+let saveButton;       // 결과 저장 버튼 / Save result button
+let currentFrame = 0; // 현재 프레임 / Current frame
+
+// =======================================================
+// P5.js Main Functions (preload, setup, draw)
+// =======================================================
 
 function setup() {
     createCanvas(1024, 1024);
@@ -52,16 +70,46 @@ function setup() {
     ];
 
     frameRate(24);
-    //noLoop(); // draw()를 한 번만 실행 / Run draw() only once
     cols = width / gridSize;
     rows = height / gridSize;
     particles = new Array(numParticles);
     grid = Array.from({ length: cols + 1 }, () => new Array(rows + 1));
-    initGrid(); // 그리드 초기화 / Initialize grid
+    initGrid();
+
+    // UI 요소 생성 / Create UI elements
+    speedSlider = createSlider(1, 60, 24, 1);
+    speedSlider.position(50, height + 20);
+
+    pauseButton = createButton('Pause');
+    pauseButton.position(200, height + 20);
+    pauseButton.mousePressed(togglePlay);
+
+    showGridCheckbox = createCheckbox('Show Grid', true);
+    showGridCheckbox.position(300, height + 20);
+
+    showParticlesCheckbox = createCheckbox('Show Particles', true);
+    showParticlesCheckbox.position(400, height + 20);
+
+    prevFrameButton = createButton('Prev Frame');
+    prevFrameButton.position(550, height + 20);
+    prevFrameButton.mousePressed(prevFrame);
+
+    nextFrameButton = createButton('Next Frame');
+    nextFrameButton.position(650, height + 20);
+    nextFrameButton.mousePressed(nextFrame);
+
+    saveButton = createButton('Save Result');
+    saveButton.position(800, height + 20);
+    saveButton.mousePressed(() => saveResult('result.txt', currentFrame));
 }
 
 function draw() {
-    let currentFrame = (frameCount - 1) % maxFiles; // 프레임 반복 / Loop frames
+    if (!isPlaying) return;
+
+    frameRate(speedSlider.value());
+
+    // 프레임 반복 / Loop frames
+    currentFrame = (frameCount - 1) % maxFiles;
 
     // 데이터 유효성 검사 / Check data validity
     const frameData = particleData[currentFrame];
@@ -87,17 +135,72 @@ function draw() {
     setNearbyParticles();
     setLevelset(2 * R, 2 * r);
 
-    displayGridsAndParticles();
+    // 체크박스 상태에 따라 그리드/파티클 표시 / Show grid/particles according to checkbox
+    if (showGridCheckbox.checked()) {
+        for (let i = 0; i <= cols; i++) {
+            for (let j = 0; j <= rows; j++) {
+                grid[i][j].displayGrid();
+            }
+        }
+    }
+    if (showParticlesCheckbox.checked()) {
+        for (let i = 0; i < numParticles; i++) {
+            particles[i].display();
+        }
+    }
+
     mc.excute();
     emc.excute();
     pop();
 
     // UI 표시 / Draw UI
-    fill(0);
-    textSize(30);
-    text("Frame: " + (currentFrame + 1) + " / " + maxFiles, 50, 50);
-    text("Triangle Count: " + triangleCount, 50, 90);
-    text("EMC Triangle Count: " + emcTriangleCount, 50, 130);
+    displayStats(currentFrame);
+
+
+}
+
+// =======================================================
+// UI Functions
+// =======================================================
+
+// 재생/일시정지 토글 / Toggle play/pause
+function togglePlay() {
+    isPlaying = !isPlaying;
+    pauseButton.html(isPlaying ? 'Pause' : 'Play');
+}
+
+// 이전 프레임 / Previous frame
+function prevFrame() {
+    isPlaying = false;
+    currentFrame = (currentFrame - 1 + maxFiles) % maxFiles;
+    redraw();
+}
+
+// 다음 프레임 / Next frame
+function nextFrame() {
+    isPlaying = false;
+    currentFrame = (currentFrame + 1) % maxFiles;
+    redraw();
+}
+
+// 슬라이더 값 변경 시 프레임 속도 업데이트 / Update frame rate on slider change
+function updateFrameRate() {
+    frameRate(speedSlider.value());
+}
+
+// =======================================================
+// Helper Functions
+// =======================================================
+
+/**
+ * 화면에 통계 정보를 그립니다.
+ */
+function displayStats(currentFrame) {
+  fill(0);
+  textSize(30);
+  text("Frame: " + (currentFrame + 1) + " / " + maxFiles, 50, 50);
+  text("Triangle Count: " + triangleCount, 50, 90);
+  text("EMC Triangle Count: " + emcTriangleCount, 50, 130);
 }
 
 // 결과 저장 / Save result
