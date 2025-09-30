@@ -51,6 +51,8 @@ let showAvgPosCheckbox;          // 평균 위치 시각화 / Show average posit
 let showNormalCheckbox;          // 노말 시각화 / Show normal visualization
 let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle normal visualization
 
+let mcCheckbox;    // MC 실행 체크박스 / MC excute checkbox
+let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
 
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
@@ -119,6 +121,12 @@ function setup() {
 
     showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
     showParticleNormalCheckbox.position(width + 20, 260);
+
+    mcCheckbox = createCheckbox('Run MC', false);
+    mcCheckbox.position(width + 20, 300);
+
+    emcCheckbox = createCheckbox('Run EMC', false);
+    emcCheckbox.position(width + 20, 320);
 }
 
 function draw() {
@@ -157,8 +165,15 @@ function draw() {
     // 체크박스 상태에 따라 그리드/파티클 표시 / Show grid/particles according to checkbox
     displayGridsAndParticles();
 
-    mc.excute();
-    emc.excute();
+    // MC, EMC excute 관리 / Manage MC, EMC excute by UI
+    if (mcCheckbox.checked()) {
+        mc.excute();
+    }
+    if (emcCheckbox.checked()) {
+        if (!mcCheckbox.checked())  mc.excute();
+        emc.excute();
+    }
+
     pop();
 
     // UI 표시 / Draw UI
