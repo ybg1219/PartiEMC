@@ -30,18 +30,24 @@ class Grid {
 
     // 평균 위치를 시각화
     displayAveragePosition() {
-        fill(255, 100, 100);
+        fill(200, 200, 100);
         stroke(50);
-        circle(this.avg.x, this.avg.y, 10);
+        circle(this.avg.x, this.avg.y, 5);
     }
 
     // 법선 벡터를 시각화
     displayNormals() {
         for (let k = 0; k < 4; k++) {
             if ((this.edgeBits & (1 << (3 - k))) !== 0) {
-                // PVector.add -> p5.Vector.add
-                let startPoint = p5.Vector.add(this.itrps[k], p5.Vector.mult(this.normals[k], gridSize));
-                drawLine(startPoint, this.itrps[k]);
+                let n = this.normals[k];
+                // 0,0 노말은 그리지 않음 / Skip zero normals
+                if (!n || (n.x === 0 && n.y === 0)) continue;
+                // stroke('green');
+                stroke(100, 200, 100);
+                strokeWeight(2);
+                // drawArrow(시작점 x, 시작점 y, 길이, 각도)
+                let angle = degrees(n.heading());
+                drawArrow(this.itrps[k].x, this.itrps[k].y, gridSize, angle);
             }
         }
     }

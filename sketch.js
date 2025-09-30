@@ -5,7 +5,7 @@ function windowResized() {
 // =======================================================
 // Global Variables
 // =======================================================
-let gridSize = 32;      // 격자 크기 / Grid size
+let gridSize = 16;      // 격자 크기 / Grid size
 let numParticles = 1160;// 입자 수 / Number of particles
 let cols, rows;         // 그리드 열/행 / Grid columns/rows
 let R = gridSize;       // 스무딩 커널 반경 / Smoothing kernel radius
@@ -46,6 +46,12 @@ let nextFrameButton;  // 다음 프레임 버튼 / Next frame button
 let saveButton;       // 결과 저장 버튼 / Save result button
 let currentFrame = 0; // 현재 프레임 / Current frame
 
+let showFieldCheckbox;           // 필드값 시각화 / Show field visualization
+let showAvgPosCheckbox;          // 평균 위치 시각화 / Show average position visualization
+let showNormalCheckbox;          // 노말 시각화 / Show normal visualization
+let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle normal visualization
+
+
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
 // =======================================================
@@ -84,12 +90,6 @@ function setup() {
     pauseButton.position(200, height + 20);
     pauseButton.mousePressed(togglePlay);
 
-    showGridCheckbox = createCheckbox('Show Grid', true);
-    showGridCheckbox.position(300, height + 20);
-
-    showParticlesCheckbox = createCheckbox('Show Particles', true);
-    showParticlesCheckbox.position(400, height + 20);
-
     prevFrameButton = createButton('Prev Frame');
     prevFrameButton.position(550, height + 20);
     prevFrameButton.mousePressed(prevFrame);
@@ -101,6 +101,24 @@ function setup() {
     saveButton = createButton('Save Result');
     saveButton.position(800, height + 20);
     saveButton.mousePressed(() => saveResult('result.txt', currentFrame));
+
+    showGridCheckbox = createCheckbox('Show Grid', true);
+    showGridCheckbox.position(width + 20, 140);
+
+    showParticlesCheckbox = createCheckbox('Show Particles', true);
+    showParticlesCheckbox.position(width + 20, 160);
+
+    showFieldCheckbox = createCheckbox('Show Field', false);
+    showFieldCheckbox.position(width + 20, 200);
+
+    showAvgPosCheckbox = createCheckbox('Show Avg Position', false);
+    showAvgPosCheckbox.position(width + 20, 220);
+
+    showNormalCheckbox = createCheckbox('Show Normal', false);
+    showNormalCheckbox.position(width + 20, 240);
+
+    showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
+    showParticleNormalCheckbox.position(width + 20, 260);
 }
 
 function draw() {
@@ -120,6 +138,7 @@ function draw() {
 
     background(255);
 
+    // 초기화/Reset counts
     triangleCount = 0;
     mcTriangleCount = 0;
     emcTriangleCount = 0;
@@ -136,18 +155,7 @@ function draw() {
     setLevelset(2 * R, 2 * r);
 
     // 체크박스 상태에 따라 그리드/파티클 표시 / Show grid/particles according to checkbox
-    if (showGridCheckbox.checked()) {
-        for (let i = 0; i <= cols; i++) {
-            for (let j = 0; j <= rows; j++) {
-                grid[i][j].displayGrid();
-            }
-        }
-    }
-    if (showParticlesCheckbox.checked()) {
-        for (let i = 0; i < numParticles; i++) {
-            particles[i].display();
-        }
-    }
+    displayGridsAndParticles();
 
     mc.excute();
     emc.excute();
@@ -215,11 +223,27 @@ function saveResult(resultFile, fileIndex) {
 function displayGridsAndParticles() {
     for (let i = 0; i <= cols; i++) {
         for (let j = 0; j <= rows; j++) {
-            grid[i][j].displayGrid();
+            if (showGridCheckbox.checked()) {
+                grid[i][j].displayGrid();
+            }
+            if (showAvgPosCheckbox.checked()) {
+                grid[i][j].displayAveragePosition();
+            }
+            if (showNormalCheckbox.checked()) {
+                grid[i][j].displayNormals();
+            }
+            if (showFieldCheckbox.checked()) {
+                grid[i][j].drawField();
+            }
         }
     }
     for (let i = 0; i < numParticles; i++) {
-        particles[i].display();
+        if (showParticlesCheckbox.checked()) {
+            particles[i].display();
+        }
+        if (showParticleNormalCheckbox.checked()) {
+            particles[i].drawParticleNormal();
+        }
     }
 }
 
@@ -354,4 +378,15 @@ function itrp(p0, p1, v0, v1) {
 // 선 그리기 / Draw line
 function drawLine(v1, v2) {
     line(v1.x, v1.y, v2.x, v2.y);
+}
+
+// 화살표 그리기 / Draw arrow
+function drawArrow(cx, cy, len, angle) {
+    push();
+    translate(cx, cy);
+    rotate(radians(angle));
+    line(0, 0, len, 0);
+    line(len, 0, len - 8, -8);
+    line(len, 0, len - 8, 8);
+    pop();
 }

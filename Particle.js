@@ -29,9 +29,13 @@ class Particle {
 
     // 파티클 법선 벡터 그리기
     drawParticleNormal() {
-        // PVector.add -> p5.Vector.add
-        let endPoint = p5.Vector.add(this.position, p5.Vector.mult(this.normal, gridSize));
-        drawLine(this.position, endPoint);
+        // 노말 벡터가 0,0이면 그리지 않음 / Skip zero normal
+        if (!this.normal || (this.normal.x === 0 && this.normal.y === 0)) return;
+        let angle = degrees(this.normal.heading());
+        // stroke('blue');
+        stroke(0, 100, 200);
+        strokeWeight(2);
+        drawArrow(this.position.x, this.position.y, gridSize, angle);
     }
 }
 
