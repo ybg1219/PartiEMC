@@ -13,17 +13,24 @@ class Particle {
     // 밀도에 따라 색상 지정 (메서드 문법 변경)
     setParticleColors() {
         // this.density 로 클래스 내부 변수 접근
-        let colorValue = map(this.density, 0, maxDensity, 100, 200);
-        fill(0, 100, colorValue, 100);
+
     }
 
     // 입자를 화면에 그리는 메서드
     display() {
-        fill(0, 0, 255, 100);
+        //fill(0, 0, 255, 100);
         stroke(150);
         push();
-        //this.setParticleColors();
+        let colorValue = map(this.density, 0, maxDensity, 100, 255);
+        fill(0, 100, colorValue, 200);
         circle(this.position.x, this.position.y, this.radius);
+
+        fill(0);
+        noStroke();
+        textSize(12);
+        textAlign(CENTER, CENTER);
+        text(colorValue, this.position.x, this.position.y - this.radius - 8);
+
         pop();
     }
 
