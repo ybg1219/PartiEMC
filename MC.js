@@ -4,7 +4,6 @@
 class MC {
     constructor() {
         this.quadMap = [];
-        this.gridPos = createVector(0, 0);
         this.quadSize = createVector(1, 0);
         this.i = 0;
         this.j = 0;
@@ -27,9 +26,10 @@ class MC {
                 if (grid[this.i][this.j].intersectionBit === 0) continue;
 
                 grid[this.i][this.j].edgeBits = EdgeTable[grid[this.i][this.j].intersectionBit];
-                this.gridPos.set(this.i, this.j);
 
-                if (this.greedyMeshing()) continue;
+                if (greedyMeshingCheckbox.checked()) {
+                    if (this.greedyMeshing()) continue;
+                }
 
                 this.setItrps();
 

@@ -53,6 +53,7 @@ let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle norm
 
 let mcCheckbox;    // MC 실행 체크박스 / MC excute checkbox
 let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
+let greedyMeshingCheckbox; // 그리디 메시징 체크박스 / Greedy meshing checkbox
 
 // SDF 관련 UI 변수 / SDF UI variables
 let sdfCheckbox;      // SDF 모드 체크박스 / SDF mode checkbox
@@ -134,6 +135,9 @@ function setup() {
 
     emcCheckbox = createCheckbox('Run EMC', false);
     emcCheckbox.position(width + 20, 320);
+
+    greedyMeshingCheckbox = createCheckbox('Greedy Meshing', true);
+    greedyMeshingCheckbox.position(width + 20, 340);
 
     // SDF UI 요소 생성 / Create SDF UI elements
     sdfCheckbox = createCheckbox('SDF mode', false);
