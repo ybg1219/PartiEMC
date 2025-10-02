@@ -57,7 +57,7 @@ let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
 // SDF 관련 UI 변수 / SDF UI variables
 let sdfCheckbox;      // SDF 모드 체크박스 / SDF mode checkbox
 let squareCheckbox;   // 사각형 SDF 체크박스 / Square SDF checkbox
-// let circleCheckbox;   // 원형 SDF 체크박스 / Circle SDF checkbox
+let shape;            // 모양 정보 저장/ Shape info storage
 let radiusSlider;     // SDF 반경 슬라이더 / SDF radius slider
 let radius;           // 현재 SDF 반경 / Current SDF radius
 
@@ -114,7 +114,7 @@ function setup() {
     showGridCheckbox = createCheckbox('Show Grid', true);
     showGridCheckbox.position(width + 20, 140);
 
-    showParticlesCheckbox = createCheckbox('Show Particles', true);
+    showParticlesCheckbox = createCheckbox('Show Particles', false);
     showParticlesCheckbox.position(width + 20, 160);
 
     showFieldCheckbox = createCheckbox('Show Field', false);
@@ -166,12 +166,17 @@ function draw() {
 
         radius = radiusSlider.value();
 
+        showParticlesCheckbox.checked(false);
+        showParticleNormalCheckbox.checked(false);
+
         // SDF 모양 결정 / Decide SDF shape
         if (squareCheckbox.checked()) {
-            setLevelsetSDF("square");
+            shape = "square";
         } else if (!squareCheckbox.checked()) {
-            setLevelsetSDF("circle");
+            shape = "circle";
         }
+        setLevelsetSDF(shape);
+
     } else {
         // 프레임 반복 / Loop frames
         currentFrame = (frameCount - 1) % maxFiles;
@@ -338,6 +343,26 @@ function densityFunc(distance, h) {
     return max(density, 0);
 }
 
+// 노말 계산 (SDF용) / Calculate normal (for SDF)
+function calculateNormalSDF(v, shape) {
+    const dt = 0.1;
+    let nv = createVector(0, 0);
+
+    if (shape === "square") {
+        nv.x = squareSDF(v.x + dt, v.y) - squareSDF(v.x - dt, v.y);
+        nv.y = squareSDF(v.x, v.y + dt) - squareSDF(v.x, v.y - dt);
+    } else if (shape === "circle") {
+        nv.x = circleSDF(v.x + dt, v.y) - circleSDF(v.x - dt, v.y);
+        nv.y = circleSDF(v.x, v.y + dt) - circleSDF(v.x, v.y - dt);
+    } else {
+        console.error("Unknown shape for SDF normal calculation:", shape);
+        return createVector(0, 0);
+    }
+    nv.normalize();
+
+    return nv;
+}
+
 // 노말 계산 / Calculate normal
 function calculateNormal(v) {
     let normal = createVector(0, 0);
@@ -402,6 +427,7 @@ function setLevelsetSDF(shape) {
     for (let x = 0; x <= cols; x++) {
         for (let y = 0; y <= rows; y++) {
             let currentGrid = grid[x][y];
+            currentGrid.field = 0;
             if (shape === "circle") {
                 // 원형 SDF / Circle SDF
                 currentGrid.field = circleSDF(currentGrid.x, currentGrid.y, width / 2, height / 2, radius);
@@ -411,7 +437,6 @@ function setLevelsetSDF(shape) {
             } else {
                 // 에러 처리 / Error handling
                 console.error("Unknown shape for SDF:", shape);
-                currentGrid.field = 0;
             }
         }
     }
@@ -423,6 +448,7 @@ function setLevelset(R, r) {
         for (let y = 0; y <= rows; y++) {
             fill(255);
             let currentGrid = grid[x][y];
+            currentGrid.field = 0;
             let wiDenominator = 0;
             for (let pj of currentGrid.nearbyParticles) {
                 let distVal = dist(currentGrid.x, currentGrid.y, pj.position.x, pj.position.y);
@@ -431,7 +457,6 @@ function setLevelset(R, r) {
             currentGrid.wSum = wiDenominator;
             let wSumZero = (wiDenominator === 0);
             calculateAveragePosition(currentGrid, R, wSumZero);
-            currentGrid.field = 0;
             let d = dist(currentGrid.avg.x, currentGrid.avg.y, currentGrid.x, currentGrid.y);
             currentGrid.field = (d <= 0.00001) ? r / 2 : d - r / 2;
         }

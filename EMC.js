@@ -14,7 +14,7 @@ class EMC extends MC {
                 let currentGrid = grid[this.i][this.j];
                 if (currentGrid.intersectionBit === 0) continue;
 
-                this.gridPos.set(this.i, this.j);
+                // this.gridPos.set(this.i, this.j);
                 this.setNormals(); // 법선 벡터 계산
 
                 // emcTable을 기반으로 삼각형을 그립니다.
@@ -55,44 +55,61 @@ class EMC extends MC {
         let currentGrid = grid[this.i][this.j];
         for (let k = 0; k < 4; k++) {
             currentGrid.normals[k] = createVector(0, 0);
+            // 엣지에 교차점이 있는 경우에만 법선 벡터 계산
             if ((currentGrid.edgeBits & (1 << (3 - k))) !== 0) {
                 let d = gridSize;
                 let n = createVector(0, 0);
-                for (let pj of currentGrid.nearbyParticles) {
-                    if (dist(currentGrid.itrps[k].x, currentGrid.itrps[k].y, pj.position.x, pj.position.y) <= d) {
-                        n.add(pj.normal);
+
+                if (sdfCheckbox.checked()) {
+                    n = calculateNormalSDF(currentGrid.itrps[k], shape);
+                } else {
+                    for (let pj of currentGrid.nearbyParticles) {
+                        if (dist(currentGrid.itrps[k].x, currentGrid.itrps[k].y, pj.position.x, pj.position.y) <= d) {
+                            n.add(pj.normal);
+                        }
                     }
                 }
                 currentGrid.normals[k] = n.normalize();
+            } else {
+                currentGrid.normals[k].set(0, 0); // 엣지에 교차점이 없으면 법선 벡터를 (0,0)으로 설정 (normal 잔류 error의 원인)
             }
         }
     }
 
     // EMC의 핵심: 가상 평면 투영으로 새로운 교점 계산
     calculateIntersection(current, index1, index2) {
-        let maxDist = 0;
+        if(sdfCheckbox.checked()){
+            return ComputeNormalIntersectionSDF(
+                current.finalPoints[index1],
+                current.normals[index1 - 4],
+                current.finalPoints[index2],
+                current.normals[index2 - 4]
+            );
+        }else{
+            let maxDist = 0;
 
-        // 두 법선의 평균으로 가상 평면의 법선 벡터 계산
-        let n = p5.Vector.div(p5.Vector.add(current.normals[index1 - 4], current.normals[index2 - 4]), 2);
-        // 두 교점의 평균으로 가상 평면의 중심점 계산
-        let itrpCenter = p5.Vector.div(p5.Vector.add(current.finalPoints[index1], current.finalPoints[index2]), 2);
+            // 두 법선의 평균으로 가상 평면의 법선 벡터 계산
+            let n = p5.Vector.div(p5.Vector.add(current.normals[index1 - 4], current.normals[index2 - 4]), 2);
+            // 두 교점의 평균으로 가상 평면의 중심점 계산
+            let itrpCenter = p5.Vector.div(p5.Vector.add(current.finalPoints[index1], current.finalPoints[index2]), 2);
 
-        // 가장 멀리 있는 파티클을 찾기 위한 초기화
-        let far = new Particle(itrpCenter.x, itrpCenter.y);
+            // 가장 멀리 있는 파티클을 찾기 위한 초기화
+            let far = new Particle(itrpCenter.x, itrpCenter.y);
 
-        for (let pj of current.nearbyParticles) {
-            let projDist = this.projection(n, itrpCenter, pj.position);
+            for (let pj of current.nearbyParticles) {
+                let projDist = this.projection(n, itrpCenter, pj.position);
 
-            // 유효성 검사 (원본 코드의 논리 오류 수정: && -> ||)
-            if (projDist < 0 || projDist > gridSize) continue;
-            if (p5.Vector.dist(pj.position, itrpCenter) > gridSize) continue;
+                // 유효성 검사 (원본 코드의 논리 오류 수정: && -> ||)
+                if (projDist < 0 || projDist > gridSize) continue;
+                if (p5.Vector.dist(pj.position, itrpCenter) > gridSize) continue;
 
-            if (maxDist < projDist) {
-                maxDist = projDist;
-                far = pj;
+                if (maxDist < projDist) {
+                    maxDist = projDist;
+                    far = pj;
+                }
             }
+            return far.position;
         }
-        return far.position;
     }
 
     // 투영 거리 계산
@@ -101,4 +118,65 @@ class EMC extends MC {
         let pToq = p5.Vector.sub(q, p);
         return n.dot(pToq);
     }
+}
+
+/**
+ * 2x2 행렬식 계산
+ * Calculate determinant of 2x2 matrix
+ * @returns {number}
+ */
+function det(a, b, c, d) {
+    return a * d - b * c;
+}
+
+/**
+ * 2x2 행렬의 역행렬 계산
+ * Calculate inverse of 2x2 matrix
+ * @returns {Array|null} 역행렬 또는 null / Inverse matrix or null
+ */
+function inv2x2(a, b, c, d) {
+    let determinant = det(a, b, c, d);
+    if (abs(determinant) < 1e-10) {
+        // 역행렬 없음 / Not invertible
+        console.warn("Matrix is not invertible");
+        return null;
+    }
+    return [
+        [d / determinant, -b / determinant],
+        [-c / determinant, a / determinant]
+    ];
+}
+
+
+/**
+ * 두 벡터와 노말로 교점 계산
+ * Compute intersection point from two vectors and normals
+ * @returns {p5.Vector}
+ */
+function ComputeNormalIntersectionSDF(v1, n1, v2, n2) {
+    let dots = [0, 0];
+    // 노말 벡터 살짝 보정 / Slightly adjust normals
+    let n1c = n1.copy();
+    let n2c = n2.copy();
+    n1c.x -= 0.00001;
+    n2c.y -= 0.00001;
+
+    dots = [v1.dot(n1c), v2.dot(n2c)];
+
+    let invMat = inv2x2(n1c.x, n1c.y, n2c.x, n2c.y);
+
+    let resultV = createVector(0, 0);
+
+    if (invMat !== null) {
+        // 행렬 곱 연산 / Matrix multiplication
+        let result = [0, 0];
+        for (let i = 0; i < 2; i++) {
+            for (let j = 0; j < 2; j++) {
+                result[i] += invMat[i][j] * dots[j];
+            }
+        }
+        resultV.x = result[0];
+        resultV.y = result[1];
+    }
+    return resultV;
 }
