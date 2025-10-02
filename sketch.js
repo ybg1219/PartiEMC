@@ -54,13 +54,12 @@ let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle norm
 let mcCheckbox;    // MC 실행 체크박스 / MC excute checkbox
 let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
 
-let sphCheckbox;    // SPH 체크 박스 / SPH checkbox
-let sdfCheckbox;    // SDF 체크 박스 / SDF checkbox
-let radiusSlider;   // SDF radius 슬라이더 / SDF radius 조정 슬라이더
-let radius;
-
-let squareCheckbox; // SDF 모양 사각형 체크박스
-let circleCheckbox; // SDF 모양 원형 체크박스
+// SDF 관련 UI 변수 / SDF UI variables
+let sdfCheckbox;      // SDF 모드 체크박스 / SDF mode checkbox
+let squareCheckbox;   // 사각형 SDF 체크박스 / Square SDF checkbox
+// let circleCheckbox;   // 원형 SDF 체크박스 / Circle SDF checkbox
+let radiusSlider;     // SDF 반경 슬라이더 / SDF radius slider
+let radius;           // 현재 SDF 반경 / Current SDF radius
 
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
@@ -130,26 +129,21 @@ function setup() {
     showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
     showParticleNormalCheckbox.position(width + 20, 260);
 
-    mcCheckbox = createCheckbox('Run MC', false);
+    mcCheckbox = createCheckbox('Run MC', true);
     mcCheckbox.position(width + 20, 300);
 
     emcCheckbox = createCheckbox('Run EMC', false);
     emcCheckbox.position(width + 20, 320);
 
-    // sphCheckbox = createCheckbox('sph : particle mode', false);
-    // sphCheckbox.position(width + 20, 360);
-
-    sdfCheckbox = createCheckbox('sdf : SDF mode', false);
+    // SDF UI 요소 생성 / Create SDF UI elements
+    sdfCheckbox = createCheckbox('SDF mode', false);
     sdfCheckbox.position(width + 20, 380);
 
-    // circleCheckbox = createCheckbox('circle shape', false);
-    // circleCheckbox.position(width + 20, 400);
+    squareCheckbox = createCheckbox('Square shape', false);
+    squareCheckbox.position(width + 20, 400);
 
-    squareCheckbox = createCheckbox('square shape', false);
-    squareCheckbox.position(width + 20, 420);
-    
     radiusSlider = createSlider(10, 200, 100, 10);
-    radiusSlider.position(width + 20, 440);
+    radiusSlider.position(width + 20, 420);
 }
 
 function draw() {
@@ -164,29 +158,30 @@ function draw() {
 
     frameRate(speedSlider.value());
 
-    // 프레임 반복 / Loop frames
-    currentFrame = (frameCount - 1) % maxFiles;
+    push();
+    translate(width / 2, height / 2);
 
+    // SDF 모드가 켜진 경우 / If SDF mode is enabled
     if (sdfCheckbox.checked()) {
+
         radius = radiusSlider.value();
-        if (squareCheckbox.checked()){
+
+        // SDF 모양 결정 / Decide SDF shape
+        if (squareCheckbox.checked()) {
             setLevelsetSDF("square");
-        }else{
+        } else if (!squareCheckbox.checked()) {
             setLevelsetSDF("circle");
-        }        
-    }else{
-        // 데이터 유효성 검사 / Check data validity
+        }
+    } else {
+        // 프레임 반복 / Loop frames
+        currentFrame = (frameCount - 1) % maxFiles;
+
         const frameData = particleData[currentFrame];
         if (!frameData || frameData.length === 0) {
             console.error(`데이터 로딩 실패: data/${currentFrame}.txt 파일을 확인하세요.`);
             return;
         }
-
-        // 파티클 데이터 설정 / Set particle data
         setParticlesFromData(frameData);
-
-        push();
-        translate(width / 2, height / 2);
 
         setpDensities();
         setpNormal();
@@ -202,7 +197,7 @@ function draw() {
         mc.excute();
     }
     if (emcCheckbox.checked()) {
-        if (!mcCheckbox.checked())  mc.excute();
+        if (!mcCheckbox.checked()) mc.excute();
         emc.excute();
     }
 
@@ -251,11 +246,11 @@ function updateFrameRate() {
  * 화면에 통계 정보를 그립니다.
  */
 function displayStats(currentFrame) {
-  fill(0);
-  textSize(30);
-  text("Frame: " + (currentFrame + 1) + " / " + maxFiles, 50, 50);
-  text("Triangle Count: " + triangleCount, 50, 90);
-  text("EMC Triangle Count: " + emcTriangleCount, 50, 130);
+    fill(0);
+    textSize(30);
+    text("Frame: " + (currentFrame + 1) + " / " + maxFiles, 50, 50);
+    text("Triangle Count: " + triangleCount, 50, 90);
+    text("EMC Triangle Count: " + emcTriangleCount, 50, 130);
 }
 
 // 결과 저장 / Save result
@@ -376,40 +371,53 @@ function kGrad(dist, relativePos) {
     return grad;
 }
 
+// 원형 SDF 함수 / Circle SDF function
 function circleSDF(x, y, cx, cy, radius) {
-  const distance=pow(x-cx, 2)+pow(y-cy, 2)-radius*radius; // implicit fucntion
-  return distance;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    // 원의 암시적 함수 / Implicit function of circle
+    return pow(x - cx, 2) + pow(y - cy, 2) - pow(radius, 2);
+}
+function circleSDF(x, y) {
+    const centerX = 0;
+    const centerY = 0;
+    // 원의 암시적 함수 / Implicit function of circle
+    return pow(x - centerX, 2) + pow(y - centerY, 2) - pow(radius, 2);
 }
 
-function squareSDF(x, y, radius) {
-  
-  const centerX = width / 2; // 캔버스의 중심 x 좌표
-  const centerY = height / 2; // 캔버스의 중심 y 좌표
-
-  const dx = abs(x - centerX) - radius; // 중심으로부터의 x 거리 계산
-  const dy = abs(y - centerY) - radius; // 중심으로부터의 y 거리 계산
-  const result = min(max(dx, dy), 0.0) + sqrt(max(dx, 0.0)*max(dx, 0.0) + max(dy, 0.0)*max(dy, 0.0));
-  return result;
+// 사각형 SDF 함수 / Square SDF function
+function squareSDF(x, y) {
+    // 캔버스 중심 기준 / Based on canvas center
+    const centerX = 0;
+    const centerY = 0;
+    const dx = abs(x - centerX) - radius;
+    const dy = abs(y - centerY) - radius;
+    // 사각형의 암시적 함수 / Implicit function of square
+    return min(max(dx, dy), 0.0) + sqrt(max(dx, 0.0) ** 2 + max(dy, 0.0) ** 2);
 }
 
 // SDF 레벨셋 계산 / Set levelset for SDF
 function setLevelsetSDF(shape) {
     for (let x = 0; x <= cols; x++) {
         for (let y = 0; y <= rows; y++) {
-            fill(255);
             let currentGrid = grid[x][y];
-            if (shape == "circle"){
-                currentGrid.field = circleSDF(x, y);
-            } else if (shape == "square"){
-                currentGrid.field = squareSDF(x,y);
+            if (shape === "circle") {
+                // 원형 SDF / Circle SDF
+                currentGrid.field = circleSDF(currentGrid.x, currentGrid.y, width / 2, height / 2, radius);
+            } else if (shape === "square") {
+                // 사각형 SDF / Square SDF
+                currentGrid.field = squareSDF(currentGrid.x, currentGrid.y, radius);
             } else {
-                // error
+                // 에러 처리 / Error handling
+                console.error("Unknown shape for SDF:", shape);
+                currentGrid.field = 0;
             }
         }
     }
 }
 
-// SPH 레벨셋 계산 / Set levelset for SPF
+// SPH 레벨셋 계산 / Set levelset for SPH
 function setLevelset(R, r) {
     for (let x = 0; x <= cols; x++) {
         for (let y = 0; y <= rows; y++) {
