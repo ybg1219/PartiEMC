@@ -54,6 +54,14 @@ let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle norm
 let mcCheckbox;    // MC 실행 체크박스 / MC excute checkbox
 let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
 
+let sphCheckbox;    // SPH 체크 박스 / SPH checkbox
+let sdfCheckbox;    // SDF 체크 박스 / SDF checkbox
+let radiusSlider;   // SDF radius 슬라이더 / SDF radius 조정 슬라이더
+let radius;
+
+let squareCheckbox; // SDF 모양 사각형 체크박스
+let circleCheckbox; // SDF 모양 원형 체크박스
+
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
 // =======================================================
@@ -127,22 +135,25 @@ function setup() {
 
     emcCheckbox = createCheckbox('Run EMC', false);
     emcCheckbox.position(width + 20, 320);
+
+    // sphCheckbox = createCheckbox('sph : particle mode', false);
+    // sphCheckbox.position(width + 20, 360);
+
+    sdfCheckbox = createCheckbox('sdf : SDF mode', false);
+    sdfCheckbox.position(width + 20, 380);
+
+    // circleCheckbox = createCheckbox('circle shape', false);
+    // circleCheckbox.position(width + 20, 400);
+
+    squareCheckbox = createCheckbox('square shape', false);
+    squareCheckbox.position(width + 20, 420);
+    
+    radiusSlider = createSlider(10, 200, 100, 10);
+    radiusSlider.position(width + 20, 440);
 }
 
 function draw() {
     if (!isPlaying) return;
-
-    frameRate(speedSlider.value());
-
-    // 프레임 반복 / Loop frames
-    currentFrame = (frameCount - 1) % maxFiles;
-
-    // 데이터 유효성 검사 / Check data validity
-    const frameData = particleData[currentFrame];
-    if (!frameData || frameData.length === 0) {
-        console.error(`데이터 로딩 실패: data/${currentFrame}.txt 파일을 확인하세요.`);
-        return;
-    }
 
     background(255);
 
@@ -151,16 +162,37 @@ function draw() {
     mcTriangleCount = 0;
     emcTriangleCount = 0;
 
-    // 파티클 데이터 설정 / Set particle data
-    setParticlesFromData(frameData);
+    frameRate(speedSlider.value());
 
-    push();
-    translate(width / 2, height / 2);
+    // 프레임 반복 / Loop frames
+    currentFrame = (frameCount - 1) % maxFiles;
 
-    setpDensities();
-    setpNormal();
-    setNearbyParticles();
-    setLevelset(2 * R, 2 * r);
+    if (sdfCheckbox.checked()) {
+        radius = radiusSlider.value();
+        if (squareCheckbox.checked()){
+            setLevelsetSDF("square");
+        }else{
+            setLevelsetSDF("circle");
+        }        
+    }else{
+        // 데이터 유효성 검사 / Check data validity
+        const frameData = particleData[currentFrame];
+        if (!frameData || frameData.length === 0) {
+            console.error(`데이터 로딩 실패: data/${currentFrame}.txt 파일을 확인하세요.`);
+            return;
+        }
+
+        // 파티클 데이터 설정 / Set particle data
+        setParticlesFromData(frameData);
+
+        push();
+        translate(width / 2, height / 2);
+
+        setpDensities();
+        setpNormal();
+        setNearbyParticles();
+        setLevelset(2 * R, 2 * r);
+    }
 
     // 체크박스 상태에 따라 그리드/파티클 표시 / Show grid/particles according to checkbox
     displayGridsAndParticles();
@@ -344,7 +376,40 @@ function kGrad(dist, relativePos) {
     return grad;
 }
 
-// 레벨셋 계산 / Set levelset
+function circleSDF(x, y, cx, cy, radius) {
+  const distance=pow(x-cx, 2)+pow(y-cy, 2)-radius*radius; // implicit fucntion
+  return distance;
+}
+
+function squareSDF(x, y, radius) {
+  
+  const centerX = width / 2; // 캔버스의 중심 x 좌표
+  const centerY = height / 2; // 캔버스의 중심 y 좌표
+
+  const dx = abs(x - centerX) - radius; // 중심으로부터의 x 거리 계산
+  const dy = abs(y - centerY) - radius; // 중심으로부터의 y 거리 계산
+  const result = min(max(dx, dy), 0.0) + sqrt(max(dx, 0.0)*max(dx, 0.0) + max(dy, 0.0)*max(dy, 0.0));
+  return result;
+}
+
+// SDF 레벨셋 계산 / Set levelset for SDF
+function setLevelsetSDF(shape) {
+    for (let x = 0; x <= cols; x++) {
+        for (let y = 0; y <= rows; y++) {
+            fill(255);
+            let currentGrid = grid[x][y];
+            if (shape == "circle"){
+                currentGrid.field = circleSDF(x, y);
+            } else if (shape == "square"){
+                currentGrid.field = squareSDF(x,y);
+            } else {
+                // error
+            }
+        }
+    }
+}
+
+// SPH 레벨셋 계산 / Set levelset for SPF
 function setLevelset(R, r) {
     for (let x = 0; x <= cols; x++) {
         for (let y = 0; y <= rows; y++) {
