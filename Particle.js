@@ -26,18 +26,31 @@ class Particle {
      * 파티클 시각화 / Display particle
      */
     display() {
-        stroke(150);
         push();
-        let colorValue = map(this.density, 0, maxDensity, 100, 255);
-        fill(0, 100, colorValue, 200);
+
+        stroke(150);
+        fill(50, 50, 255, 200);
+        if (densityfieldCheckbox.checked()) {
+            // 밀도 기반 색상 매핑 / Density-based color mapping
+            // let colorValue = map(this.density, 0, maxDensity, 200, 50);
+            // stroke(150);
+            // fill( colorValue, 200);
+            
+            let amount = map(this.density, 0, maxDensity, 0, 1);
+            let particleColor = lerpColor(lowDensityColor, highDensityColor, amount);
+            fill(particleColor);
+
+        }
         circle(this.position.x, this.position.y, this.radius);
 
         // 밀도값 표시 / Show density value
-        fill(0);
-        noStroke();
-        textSize(12);
-        textAlign(CENTER, CENTER);
-        text(nf(this.density, 1, 2), this.position.x, this.position.y - this.radius - 8);
+        if (densityDebugCheckbox.checked()) {
+            fill(0);
+            noStroke();
+            textSize(8);
+            textAlign(CENTER, CENTER);
+            text(nf(this.density, 1, 2), this.position.x, this.position.y - this.radius - 8);
+        }
 
         pop();
     }

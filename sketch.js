@@ -67,6 +67,11 @@ let numParticlesSlider; // 입자 수 슬라이더 / Number of particles slider
 let smoothingRadiusSlider; // 스무딩 반경 슬라이더 / Smoothing radius slider
 let levelsetRadiusSlider; // 레벨셋 반경 슬라이더 / Levelset radius slider
 
+let lowDensityColor;  // 낮은 밀도일 때의 색상
+let highDensityColor; // 높은 밀도일 때의 색상
+let densityfieldCheckbox; // 밀도 기반 필드 체크박스 / Density-based field checkbox
+let densityDebugCheckbox; // 밀도 디버그 체크박스 / Density debug checkbox
+
 
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
@@ -173,7 +178,7 @@ function setup() {
     // 체크박스 상태가 변경될 때마다 onSPHModeChange 함수를 호출/ Call onSPHModeChange function whenever checkbox state changes
     SPHCheckbox.changed(onSPHModeChange);
 
-    numParticlesSlider = createSlider(100, 1500, numParticles, 10);
+    numParticlesSlider = createSlider(100, 3000, numParticles, 10);
     numParticlesSlider.position(width + 20, 480);
     // 슬라이더를 조작하는 동안 실시간으로 updateParticleCount 함수를 호출합니다.
     numParticlesSlider.input(updateParticleCount);
@@ -184,6 +189,15 @@ function setup() {
 
     levelsetRadiusSlider = createSlider(1, 100, r, 1);
     levelsetRadiusSlider.position(width + 20, 520);
+
+    lowDensityColor = color(0, 100, 255);   // 파란색
+    highDensityColor = color(255, 50, 0);    // 붉은색
+
+    densityfieldCheckbox = createCheckbox('Density Field', false);
+    densityfieldCheckbox.position(width + 20, 540);
+
+    densityDebugCheckbox = createCheckbox('Density Debug', false);
+    densityDebugCheckbox.position(width + 20, 560);
 }
 
 function draw() {
@@ -445,22 +459,16 @@ function k(s) {
 function calculateDensity(v) {
     let density = 0;
     for (let pj of particles) {
-        // ▼▼▼▼▼ 디버깅 코드 추가 ▼▼▼▼▼
-        if (!pj) {
-            console.error("💥 calculateDensity 오류: particles 배열의 요소가 undefined입니다!");
-            continue; // 이 요소는 건너뛰고 다음 루프를 실행합니다.
-        }
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
         let d = p5.Vector.dist(v, pj.position);
-        if (d <= R && d >= 0.01) {
-            density += densityFunc(d, r);
+        if (d <= R*2 && d >= 0.01) {
+            density += densitykernel(d, R*2);
         }
     }
     return density;
 }
 
 // 밀도 커널 함수 / Density kernel function
-function densityFunc(distance, h) {
+function densitykernel(distance, h) {
     let density = 1 - (pow(distance, 2) / pow(h, 2));
     return max(density, 0);
 }
