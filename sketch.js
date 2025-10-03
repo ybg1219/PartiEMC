@@ -498,7 +498,7 @@ function calculateNormal(v) {
     let normal = createVector(0, 0);
     for (let pj of particles) {
         let d = p5.Vector.dist(v, pj.position);
-        if (d <= gridSize * 1.5) {
+        if (d <= gridSize * 2) {
             let relativePos = p5.Vector.sub(pj.position, v);
             let val = kGrad(d, relativePos);
             normal.add(val);
@@ -628,7 +628,7 @@ function drawArrow(cx, cy, len, angle) {
     translate(cx, cy);
     rotate(radians(angle));
     line(0, 0, len, 0);
-    line(len, 0, len - 8, -8);
-    line(len, 0, len - 8, 8);
+    line(len, 0, len - 4, -4);
+    line(len, 0, len - 4, 4);
     pop();
 }
