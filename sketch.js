@@ -10,7 +10,6 @@ let numParticles = 1160;// 입자 수 / Number of particles
 let cols, rows;         // 그리드 열/행 / Grid columns/rows
 let R = gridSize;       // 스무딩 커널 반경 / Smoothing kernel radius
 let r = R / 2;          // 레벨셋 반경 / Levelset radius
-let particleRadius = 300; // 파티클 생성 반경 / Particle spawn radius
 let maxDensity = 0;
 
 let fileIndex = 0;      // 파일 인덱스 / File index
@@ -23,7 +22,7 @@ let emcTriangleCount = 0;
 let dataScaler = 800;
 
 // Data and Object Storage
-let particles;          // Particle 객체 배열 / Particle array
+let particles = [];          // Particle 객체 배열 / Particle array
 let grid;               // 그리드 객체 배열 / Grid array
 let particleData = [];
 
@@ -62,6 +61,13 @@ let shape;            // 모양 정보 저장/ Shape info storage
 let radiusSlider;     // SDF 반경 슬라이더 / SDF radius slider
 let radius;           // 현재 SDF 반경 / Current SDF radius
 
+// SPH 관련 UI 변수 / SPH UI variables
+let SPHCheckbox;      // SPH 모드 체크박스 / SPH mode checkbox
+let numParticlesSlider; // 입자 수 슬라이더 / Number of particles slider
+let smoothingRadiusSlider; // 스무딩 반경 슬라이더 / Smoothing radius slider
+let levelsetRadiusSlider; // 레벨셋 반경 슬라이더 / Levelset radius slider
+
+
 // =======================================================
 // P5.js Main Functions (preload, setup, draw)
 // =======================================================
@@ -91,6 +97,17 @@ function setup() {
     particles = new Array(numParticles);
     grid = Array.from({ length: cols + 1 }, () => new Array(rows + 1));
     initGrid();
+
+    // 기본 변수 설정 / Default variables setup
+    shape = "circle";
+    radius = 200;
+
+    if (!particles || particles.length !== numParticles) {
+        createParticles(numParticles, radius, shape);
+
+        console.log(`${numParticles} particles created.`);
+    }
+
 
     // UI 요소 생성 / Create UI elements
     speedSlider = createSlider(1, 60, 24, 1);
@@ -146,8 +163,27 @@ function setup() {
     squareCheckbox = createCheckbox('Square shape', false);
     squareCheckbox.position(width + 20, 400);
 
-    radiusSlider = createSlider(10, 200, 100, 10);
+    radiusSlider = createSlider(10, 200, radius, 10);
     radiusSlider.position(width + 20, 420);
+    radiusSlider.input(updateRadius);
+
+    // SPH UI 요소 생성 / Create SPH UI elements
+    SPHCheckbox = createCheckbox('SPH mode', false);
+    SPHCheckbox.position(width + 20, 460);
+    // 체크박스 상태가 변경될 때마다 onSPHModeChange 함수를 호출/ Call onSPHModeChange function whenever checkbox state changes
+    SPHCheckbox.changed(onSPHModeChange);
+
+    numParticlesSlider = createSlider(100, 1500, numParticles, 10);
+    numParticlesSlider.position(width + 20, 480);
+    // 슬라이더를 조작하는 동안 실시간으로 updateParticleCount 함수를 호출합니다.
+    numParticlesSlider.input(updateParticleCount);
+
+
+    smoothingRadiusSlider = createSlider(5, 100, R, 1);
+    smoothingRadiusSlider.position(width + 20, 500);
+
+    levelsetRadiusSlider = createSlider(1, 100, r, 1);
+    levelsetRadiusSlider.position(width + 20, 520);
 }
 
 function draw() {
@@ -165,32 +201,45 @@ function draw() {
     push();
     translate(width / 2, height / 2);
 
+    // 반경 업데이트 / Update radius
+    radius = radiusSlider.value();
+    // 모양 설정 / Set shape
+    if (squareCheckbox.checked()) {
+        shape = "square";
+    } else { // default
+        shape = "circle";
+    }
+
     // SDF 모드가 켜진 경우 / If SDF mode is enabled
     if (sdfCheckbox.checked()) {
-
-        radius = radiusSlider.value();
 
         showParticlesCheckbox.checked(false);
         showParticleNormalCheckbox.checked(false);
 
-        // SDF 모양 결정 / Decide SDF shape
-        if (squareCheckbox.checked()) {
-            shape = "square";
-        } else if (!squareCheckbox.checked()) {
-            shape = "circle";
-        }
         setLevelsetSDF(shape);
 
     } else {
-        // 프레임 반복 / Loop frames
-        currentFrame = (frameCount - 1) % maxFiles;
 
-        const frameData = particleData[currentFrame];
-        if (!frameData || frameData.length === 0) {
-            console.error(`데이터 로딩 실패: data/${currentFrame}.txt 파일을 확인하세요.`);
-            return;
+        if (SPHCheckbox.checked()) {
+            // SPH 모드가 켜진 경우 / If SPH mode is enabled
+            numParticles = numParticlesSlider.value();
+            R = smoothingRadiusSlider.value();
+            r = levelsetRadiusSlider.value();
+
+        } else {
+            // 유체 시뮬레이션 데이터 모드/ If fluid simulation data mode
+            // 시뮬레이션 프레임 반복 / Loop all frames
+            currentFrame = (frameCount - 1) % maxFiles;
+
+            // 모든 프레임 데이터를 미리 로드해서 particleData 배열에 저장함 
+            // / All frame data is preloaded and stored in the particleData array
+            const frameData = particleData[currentFrame];
+            if (!frameData || frameData.length === 0) {
+                console.error(`데이터 로딩 실패: data/${currentFrame}.txt 파일을 확인하세요.`);
+                return;
+            }
+            setParticlesFromData(frameData);
         }
-        setParticlesFromData(frameData);
 
         setpDensities();
         setpNormal();
@@ -217,6 +266,54 @@ function draw() {
 
 
 }
+
+// =======================================================
+// Event listeners
+// =======================================================
+
+/**
+ * SPHCheckbox의 상태가 변경될 때 호출되는 함수.
+ */
+function onSPHModeChange() {
+    if (SPHCheckbox.checked()) {
+        // SPH 모드가 켜지는 순간 SDF 모드 false (동시 실행 방지) / When SPH mode is enabled SDF mode false (prevent simultaneous execution)
+        sdfCheckbox.checked(false);
+        // 현재 슬라이더 값으로 파티클을 생성. / Create particles with current slider value
+        numParticles = numParticlesSlider.value();
+        createParticles(numParticles, radius, shape);
+        console.log(`SPH mode ON. ${numParticles} particles created.`);
+    } else {
+        // SPH 모드가 꺼지는 순간:
+        console.log("SPH mode OFF.");
+        // 필요하다면, 유체 시뮬레이션의 첫 프레임으로
+        // currentFrame = 0; 
+    }
+}
+
+/**
+ * numParticlesSlider 값이 변경될 때마다 호출되어
+ * SPH 모드일 경우 파티클 개수를 실시간으로 조절.
+ */
+function updateParticleCount() {
+    // SPH 모드가 활성화된 상태일 때만 실행.
+    if (SPHCheckbox.checked()) {
+        numParticles = numParticlesSlider.value();
+
+        // 슬라이더 값에 맞춰 파티클 배열을 새로 생성. / Recreate particle array to match slider value
+        createParticles(numParticles, radius, shape);
+    }
+}
+
+function updateRadius() {
+    // SPH 모드가 활성화된 상태일 때만 실행하면 됨. / Only need to run when SPH mode is enabled.
+    if (SPHCheckbox.checked()) {
+        radius = radiusSlider.value();
+
+        // 슬라이더 값에 맞춰 파티클 배열을 새로 생성. / Recreate particle array to match slider value
+        createParticles(numParticles, radius, shape);
+    }
+}
+
 
 // =======================================================
 // UI Functions
@@ -300,18 +397,33 @@ function displayGridsAndParticles() {
 
 // 데이터로부터 파티클 설정 / Set particles from data
 function setParticlesFromData(lines) {
+
+    // 기존 파티클 배열을 재사용하거나 새로 생성 / Reuse or recreate particle array
+    if (!particles || particles.length !== lines.length) {
+        particles = new Array(lines.length);
+    }
     numParticles = lines.length;
-    particles = new Array(numParticles);
+    particles.length = numParticles;
+
     for (let i = 0; i < numParticles; i++) {
         if (lines[i]) {
             let pos = lines[i].split(" ").map(Number);
             let x = (-0.5 + pos[0]) * dataScaler;
             let y = -(-0.5 + pos[1]) * dataScaler;
-            particles[i] = new Particle(x, y);
+            if (particles[i]) {
+                // 기존 파티클 위치만 갱신 / Update position of existing particle
+                particles[i].position.set(x, y);
+            } else {
+                // 새 파티클 생성 / Create new particle
+                particles[i] = new Particle(x, y);
+            }
         }
     }
-    particles = particles.filter(p => p !== undefined);
-    numParticles = particles.length;
+    // 남는 파티클 제거 / Remove extra particles
+    if (particles.length > numParticles-1) {
+        particles.length = numParticles-1;
+        numParticles = particles.length;
+    }
 }
 
 // 프레임별 데이터 미리 로드 / Preload frame data
@@ -333,6 +445,12 @@ function k(s) {
 function calculateDensity(v) {
     let density = 0;
     for (let pj of particles) {
+        // ▼▼▼▼▼ 디버깅 코드 추가 ▼▼▼▼▼
+        if (!pj) {
+            console.error("💥 calculateDensity 오류: particles 배열의 요소가 undefined입니다!");
+            continue; // 이 요소는 건너뛰고 다음 루프를 실행합니다.
+        }
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
         let d = p5.Vector.dist(v, pj.position);
         if (d <= R && d >= 0.01) {
             density += densityFunc(d, r);
@@ -401,13 +519,12 @@ function kGrad(dist, relativePos) {
 }
 
 // 원형 SDF 함수 / Circle SDF function
-function circleSDF(x, y, cx, cy, radius) {
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-    // 원의 암시적 함수 / Implicit function of circle
-    return pow(x - cx, 2) + pow(y - cy, 2) - pow(radius, 2);
-}
+// function circleSDF(x, y, cx, cy, radius) {
+//     const centerX = width / 2;
+//     const centerY = height / 2;
+//     // 원의 암시적 함수 / Implicit function of circle
+//     return pow(x - cx, 2) + pow(y - cy, 2) - pow(radius, 2);
+// }
 function circleSDF(x, y) {
     const centerX = 0;
     const centerY = 0;

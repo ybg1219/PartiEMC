@@ -1,82 +1,132 @@
-// Particle 클래스 정의
+// =======================================================
+// Particle 클래스 정의 / Particle Class Definition
+// =======================================================
 class Particle {
-    // 생성자 함수
+    /**
+     * 파티클 생성자 / Particle constructor
+     * @param {number} x - x 좌표 / x position
+     * @param {number} y - y 좌표 / y position
+     */
     constructor(x, y) {
-        // PVector -> createVector()
-        this.position = createVector(x, y);
-        this.radius = 10;
-        this.wi = 0;
-        this.normal = createVector(0, 0);
-        this.density = 0;
+        this.position = createVector(x, y); // 위치 / Position
+        this.radius = 10;                   // 반경 / Radius
+        this.wi = 0;                        // 커널 가중치 / Kernel weight
+        this.normal = createVector(0, 0);   // 법선 벡터 / Normal vector
+        this.density = 0;                   // 밀도 / Density
     }
 
-    // 밀도에 따라 색상 지정 (메서드 문법 변경)
+    /**
+     * 밀도에 따라 색상 지정 / Set color by density
+     */
     setParticleColors() {
-        // this.density 로 클래스 내부 변수 접근
-
+        // 필요시 색상 로직 구현 / Implement color logic if needed
     }
 
-    // 입자를 화면에 그리는 메서드
+    /**
+     * 파티클 시각화 / Display particle
+     */
     display() {
-        //fill(0, 0, 255, 100);
         stroke(150);
         push();
         let colorValue = map(this.density, 0, maxDensity, 100, 255);
         fill(0, 100, colorValue, 200);
         circle(this.position.x, this.position.y, this.radius);
 
+        // 밀도값 표시 / Show density value
         fill(0);
         noStroke();
         textSize(12);
         textAlign(CENTER, CENTER);
-        text(colorValue, this.position.x, this.position.y - this.radius - 8);
+        text(nf(this.density, 1, 2), this.position.x, this.position.y - this.radius - 8);
 
         pop();
     }
 
-    // 파티클 법선 벡터 그리기
+    /**
+     * 파티클 법선 벡터 시각화 / Draw particle normal vector
+     */
     drawParticleNormal() {
-        // 노말 벡터가 0,0이면 그리지 않음 / Skip zero normal
         if (!this.normal || (this.normal.x === 0 && this.normal.y === 0)) return;
         let angle = degrees(this.normal.heading());
-        // stroke('blue');
         stroke(0, 100, 200);
         strokeWeight(2);
         drawArrow(this.position.x, this.position.y, gridSize, angle);
     }
 }
 
-// === Particle 클래스와 관련된 헬퍼 함수들 ===
-// 이 함수들은 특정 클래스에 속하지 않으므로 전역 함수로 둡니다.
+// =======================================================
+// Particle 관련 헬퍼 함수 / Particle Helper Functions
+// =======================================================
 
-// 모든 파티클의 법선 벡터를 계산하고 설정하는 함수
+/**
+ * 모든 파티클의 법선 벡터 계산 / Set normals for all particles
+ */
 function setpNormal() {
-    // for (Particle pi : particles) -> for (let pi of particles)
     for (let pi of particles) {
         pi.normal = calculateNormal(pi.position);
     }
 }
 
-// 모든 파티클의 밀도를 계산하고 설정하는 함수
+/**
+ * 모든 파티클의 밀도 계산 / Set densities for all particles
+ */
 function setpDensities() {
-    maxDensity = 0; // 매번 최대 밀도 초기화
+    maxDensity = 0;
     for (let pi of particles) {
         pi.density = calculateDensity(pi.position);
-        if (pi.density >= maxDensity) {
+        if (pi.density > maxDensity) {
             maxDensity = pi.density;
         }
     }
 }
 
-// 입자 초기화 함수
-function initParticles(num) {
-    particles = new Array(num);
-    for (let i = 0; i < num; i++) {
-        let angle = random(TWO_PI);
-        let r = random(particleRadius);
-        let x = cos(angle) * r;
-        let y = sin(angle) * r;
-        // new Particle(...) 로 객체 생성
-        particles[i] = new Particle(x, y);
+/**
+ * 파티클 배열 생성 / Create particle array
+ * @param {number} num - 파티클 개수 / Number of particles
+ * @param {number} radius - 생성 반경 / Creation radius
+ * @param {string} shape - 'circle' 또는 'square' / 'circle' or 'square'
+ */
+function createParticles(num, radius, shape) {
+    particles = [];
+    if (shape === 'circle') {
+        for (let i = 0; i < num; i++) {
+            let angle = random(TWO_PI);
+            let r = random(radius);
+            let x = cos(angle) * r;
+            let y = sin(angle) * r;
+            particles.push(new Particle(x, y));
+        }
+    } else if (shape === 'square') {
+        for (let i = 0; i < num; i++) {
+            let x = random(-radius, radius);
+            let y = random(-radius, radius);
+            particles.push(new Particle(x, y));
+        }
     }
+    // 남는 파티클 제거 / remove extra particles
+    particles.length = num;
+    numParticles = particles.length;
 }
+
+
+
+/**
+ * 파티클 위치 설정 / Set particle positions
+ * @param {Array} positions - 위치 벡터 배열 / Array of position vectors
+ */
+function setSPHParticlePositions(positions) {
+    for (let i = 0; i < positions.length; i++) {
+        if (i < particles.length) {
+            particles[i].position.set(positions[i].x, positions[i].y);
+        } else {
+            particles.push(new Particle(positions[i].x, positions[i].y));
+        }
+    }
+    // 필요시 남는 파티클 제거 / Optionally remove extra particles
+    particles.length = positions.length;
+    numParticles = particles.length;
+}
+
+// =======================================================
+// End of Particle.js
+// =======================================================
