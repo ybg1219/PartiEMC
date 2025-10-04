@@ -7,12 +7,16 @@
 
 This project implements and visualizes an optimized **Extended Marching Cubes (EMC)** algorithm designed to overcome the limitations of the standard Marching Cubes (MC) method. By combining **Virtual Plane Projection** for accuracy and **Greedy Meshing** for performance, this framework provides a robust solution for generating high-fidelity surfaces from dynamic particle datasets, such as those from fluid simulations.
 
-**[Live Demo](https://ybg1219.github.io/PartiEMC/)**
+### Live Demo
+
+[![Live Demo Thumbnail](./readme_asset/Fig7.png)](https://ybg1219.github.io/PartiEMC/)
+*<p align="center"> ↑ ↑ Click the image above to launch the Live Demo ↑ ↑ </p>*
 
 ### Framework Demo
 
-[**>> Click here to watch the demo video (데모 영상 보기) <<**](readme_assset/demo.mp4)
 ![Framework Demo](readme_asset/Demo.gif)
+
+[**>> Click here to watch the demo VIDEO instead of GIF <<**](readme_asset/demo.mp4)
 
 ---
 
@@ -36,7 +40,7 @@ The standard Marching Cubes (MC) algorithm is a widely used method for extractin
 This project addresses these issues by implementing an enhanced EMC algorithm specifically tailored for particle-based data, which is common in physics simulations but lacks the explicit connectivity needed for traditional methods.
 
 ![Figure 5. Comparison of surface reconstruction results between the proposed method and Marching Cubes (MC): (Left) Volume loss in MC, (Right) Feature preservation in the proposed method.](readme_asset/Fig5.png)
-*<p align="center">Fig. 5: 제안 기법과 기존 Marching Cubes(MC)의 표면 복원 결과 비교: (좌) MC의 볼륨 손실, (우) 제안 기법의 형상 보존</p>*
+*<p align="center"> Figure 5: Surface reconstruction comparison. (Left) MC exhibits volume loss and feature smoothing; (Right) the proposed method preserves sharp edges and maintains volume.</p>*
 
 
 ### 2. Core Algorithms
@@ -47,21 +51,21 @@ This framework is built upon two key technical contributions to solve the challe
 To overcome the problem of inaccurate normal vectors in sparse particle data, this method calculates a stable normal from the average position of particles within a grid cell. This normal defines a "virtual plane," and the particle furthest from this plane is chosen as the new, feature-preserving vertex for the EMC algorithm.
 
 ![Figure 4. Process of normal vector estimation using Virtual Plane Projection.](readme_asset/Fig4.png)
-*<p align="center">Fig. 4: 가상 평면 투영(Virtual Plane Projection)을 이용한 법선 벡터 추정 과정</p>*
+*<p align="center"> Figure 4: Overview of vertex positioning via virtual-plane projection. The plane (orange) and projection distance (green) guide the selection of the new vertex.</p>*
 
 #### Greedy Meshing
 To enable real-time performance, the framework incorporates a Greedy Meshing optimization step. After the initial surface is generated, this algorithm scans the mesh and merges unnecessary internal triangles into larger polygons. This significantly reduces the total triangle count (by up to 75%) without sacrificing any detail on the visible outer surface, dramatically lowering the rendering and memory load.
 
 ![Figure 10. Surface reconstruction results and triangle counts for a fluid simulation at various frames.](readme_asset/Fig10.png)
-*<p align="center">Fig. 10: 다양한 프레임에서의 유체 시뮬레이션 표면 복원 결과 및 삼각형 개수</p>*
+*<p align="center">Figure 10: Surface reconstruction across di erent frames with corresponding triangle counts</p>*
 
 
 ### 3. Pipeline
 
 The framework processes data through the pipeline illustrated in Fig. 1. It begins with particle data input and proceeds through several stages of calculation and optimization before rendering the final surface.
 
-![Figure 1. Software architecture of the proposed particle-based EMC framework.](readme_asset/Fig1.png)
-*<p align="center">Fig. 1: 제안하는 입자 기반 EMC 프레임워크의 소프트웨어 아키텍처</p>*
+![Figure 1. Overall architecture of the proposed particle-based EMC framework.](readme_asset/Fig1.png)
+*<p align="center">Figure 1: Overall architecture of the proposed particle-based EMC framework.</p>*
 
 1.  **Data Input**: Loads particle data from `.txt` files (Fluid Data Mode) or generates it procedurally (SPH and SDF Modes).
 2.  **Scalar Field Construction**: Converts the discrete particle distribution into a continuous scalar field using SPH (Smoothed Particle Hydrodynamics) kernels.
