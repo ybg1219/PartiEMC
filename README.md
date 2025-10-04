@@ -35,7 +35,7 @@ The standard Marching Cubes (MC) algorithm is a widely used method for extractin
 
 This project addresses these issues by implementing an enhanced EMC algorithm specifically tailored for particle-based data, which is common in physics simulations but lacks the explicit connectivity needed for traditional methods.
 
-![Figure 5. Comparison of surface reconstruction results between the proposed method and Marching Cubes (MC): (Left) Volume loss in MC, (Right) Feature preservation in the proposed method.](readme_asset/fig5.png)
+![Figure 5. Comparison of surface reconstruction results between the proposed method and Marching Cubes (MC): (Left) Volume loss in MC, (Right) Feature preservation in the proposed method.](readme_asset/Fig5.png)
 *<p align="center">Fig. 5: 제안 기법과 기존 Marching Cubes(MC)의 표면 복원 결과 비교: (좌) MC의 볼륨 손실, (우) 제안 기법의 형상 보존</p>*
 
 
@@ -46,7 +46,7 @@ This framework is built upon two key technical contributions to solve the challe
 #### Virtual Plane Projection
 To overcome the problem of inaccurate normal vectors in sparse particle data, this method calculates a stable normal from the average position of particles within a grid cell. This normal defines a "virtual plane," and the particle furthest from this plane is chosen as the new, feature-preserving vertex for the EMC algorithm.
 
-![Figure 4. Process of normal vector estimation using Virtual Plane Projection.](readme_asset/fig4.png)
+![Figure 4. Process of normal vector estimation using Virtual Plane Projection.](readme_asset/Fig4.png)
 *<p align="center">Fig. 4: 가상 평면 투영(Virtual Plane Projection)을 이용한 법선 벡터 추정 과정</p>*
 
 #### Greedy Meshing
@@ -60,7 +60,7 @@ To enable real-time performance, the framework incorporates a Greedy Meshing opt
 
 The framework processes data through the pipeline illustrated in Fig. 1. It begins with particle data input and proceeds through several stages of calculation and optimization before rendering the final surface.
 
-![Figure 1. Software architecture of the proposed particle-based EMC framework.](readme_asset/fig1.png)
+![Figure 1. Software architecture of the proposed particle-based EMC framework.](readme_asset/Fig1.png)
 *<p align="center">Fig. 1: 제안하는 입자 기반 EMC 프레임워크의 소프트웨어 아키텍처</p>*
 
 1.  **Data Input**: Loads particle data from `.txt` files (Fluid Data Mode) or generates it procedurally (SPH and SDF Modes).
