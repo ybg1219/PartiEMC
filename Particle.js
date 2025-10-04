@@ -29,7 +29,7 @@ class Particle {
         push();
 
         stroke(150);
-        fill(50, 50, 255, 200);
+        fill(200, 200);
         if (densityfieldCheckbox.checked()) {
             // 밀도 기반 색상 매핑 / Density-based color mapping
             // let colorValue = map(this.density, 0, maxDensity, 200, 50);
@@ -61,7 +61,7 @@ class Particle {
     drawParticleNormal() {
         if (!this.normal || (this.normal.x === 0 && this.normal.y === 0)) return;
         let angle = degrees(this.normal.heading());
-        stroke(0, 100, 200);
+        stroke(250, 200, 0);
         strokeWeight(2);
         drawArrow(this.position.x, this.position.y, gridSize, angle);
     }

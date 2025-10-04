@@ -106,6 +106,9 @@ function setup() {
     // 기본 변수 설정 / Default variables setup
     shape = "circle";
     radius = 200;
+    
+    lowDensityColor = color(0, 100, 255);   // 파란색
+    highDensityColor = color(255, 50, 0);    // 붉은색
 
     if (!particles || particles.length !== numParticles) {
         createParticles(numParticles, radius, shape);
@@ -133,65 +136,58 @@ function setup() {
     saveButton = createButton('Save Result');
     saveButton.position(800, height + 20);
     saveButton.mousePressed(() => saveResult('result.txt', currentFrame));
-
-    showGridCheckbox = createCheckbox('Show Grid', true);
-    showGridCheckbox.position(width + 20, 140);
-
-    showParticlesCheckbox = createCheckbox('Show Particles', false);
-    showParticlesCheckbox.position(width + 20, 160);
-
-    showFieldCheckbox = createCheckbox('Show Field', false);
-    showFieldCheckbox.position(width + 20, 200);
-
-    showAvgPosCheckbox = createCheckbox('Show Avg Position', false);
-    showAvgPosCheckbox.position(width + 20, 220);
-
-    showNormalCheckbox = createCheckbox('Show Normal', false);
-    showNormalCheckbox.position(width + 20, 240);
-
-    showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
-    showParticleNormalCheckbox.position(width + 20, 260);
-
-    mcCheckbox = createCheckbox('Run MC', true);
-    mcCheckbox.position(width + 20, 300);
-
-    emcCheckbox = createCheckbox('Run EMC', false);
-    emcCheckbox.position(width + 20, 320);
-
+    
     greedyMeshingCheckbox = createCheckbox('Greedy Meshing', true);
-    greedyMeshingCheckbox.position(width + 20, 340);
+    greedyMeshingCheckbox.position(width + 20, 80);
+    mcCheckbox = createCheckbox('Run MC', true);
+    mcCheckbox.position(width + 20, 100);
+    emcCheckbox = createCheckbox('Run EMC', false);
+    emcCheckbox.position(width + 20, 120);
 
     // SDF UI 요소 생성 / Create SDF UI elements
     sdfCheckbox = createCheckbox('SDF mode', false);
-    sdfCheckbox.position(width + 20, 380);
+    sdfCheckbox.position(width + 20, 180);
 
     squareCheckbox = createCheckbox('Square shape', false);
-    squareCheckbox.position(width + 20, 400);
+    squareCheckbox.position(width + 20, 200);
 
+    text("Radius: ", width + 20, 215);
     radiusSlider = createSlider(10, 200, radius, 10);
-    radiusSlider.position(width + 20, 420);
+    radiusSlider.position(width + 20, 220);
     radiusSlider.input(updateRadius);
 
+    showGridCheckbox = createCheckbox('Show Grid', true);
+    showGridCheckbox.position(width + 20, 240);
+    showFieldCheckbox = createCheckbox('Show Field', false);
+    showFieldCheckbox.position(width + 20, 260);
+    showNormalCheckbox = createCheckbox('Show Normal', false);
+    showNormalCheckbox.position(width + 20, 280);
+    
     // SPH UI 요소 생성 / Create SPH UI elements
     SPHCheckbox = createCheckbox('SPH mode', false);
-    SPHCheckbox.position(width + 20, 460);
+    SPHCheckbox.position(width + 20, 320);
     // 체크박스 상태가 변경될 때마다 onSPHModeChange 함수를 호출/ Call onSPHModeChange function whenever checkbox state changes
     SPHCheckbox.changed(onSPHModeChange);
 
+    // SPH 가 활성화된 경우만 동작 / Only works when SPH is enabled
+    showParticlesCheckbox = createCheckbox('Show Particles', false);
+    showParticlesCheckbox.position(width + 20, 340);
+
     numParticlesSlider = createSlider(100, 3000, numParticles, 10);
-    numParticlesSlider.position(width + 20, 480);
+    numParticlesSlider.position(width + 20, 360);
     // 슬라이더를 조작하는 동안 실시간으로 updateParticleCount 함수를 호출합니다.
     numParticlesSlider.input(updateParticleCount);
 
+    showAvgPosCheckbox = createCheckbox('Show Avg Position', false);
+    showAvgPosCheckbox.position(width + 20, 380);
+    showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
+    showParticleNormalCheckbox.position(width + 20, 400);
 
-    smoothingRadiusSlider = createSlider(5, 100, R, 1);
+    smoothingRadiusSlider = createSlider(8, R*4, R, 4);
     smoothingRadiusSlider.position(width + 20, 500);
 
-    levelsetRadiusSlider = createSlider(1, 100, r, 1);
+    levelsetRadiusSlider = createSlider(8, r*2, r, 4);
     levelsetRadiusSlider.position(width + 20, 520);
-
-    lowDensityColor = color(0, 100, 255);   // 파란색
-    highDensityColor = color(255, 50, 0);    // 붉은색
 
     densityfieldCheckbox = createCheckbox('Density Field', false);
     densityfieldCheckbox.position(width + 20, 540);
