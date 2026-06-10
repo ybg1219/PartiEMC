@@ -99,13 +99,27 @@ function setup() {
     frameRate(State.config.defaultFrameRate);
     cols = width / gridSize;
     rows = height / gridSize;
+    
+    // State.simulation에 격자 수 동기화
+    State.simulation.cols = cols;
+    State.simulation.rows = rows;
+    
     particles = new Array(numParticles);
+    State.simulation.particles = particles; // 배열 참조 공유
+    
     grid = Array.from({ length: cols + 1 }, () => new Array(rows + 1));
+    State.simulation.grid = grid; // 배열 참조 공유
+    
     initGrid();
 
     // 기본 변수 설정 / Default variables setup
     shape = "circle";
     radius = State.config.defaultRadius;
+    
+    // State.simulation 파라미터 초기화
+    State.simulation.shape = shape;
+    State.simulation.R = gridSize;
+    State.simulation.r = gridSize / 2;
     
     lowDensityColor = color(0, 100, 255);   // 파란색
     highDensityColor = color(255, 50, 0);    // 붉은색
@@ -118,85 +132,12 @@ function setup() {
 
 
     // UI 요소 생성 / Create UI elements
-    speedSlider = createSlider(1, 60, State.config.defaultFrameRate, 1);
-    speedSlider.position(50, height + 20);
-
-    pauseButton = createButton('Pause');
-    pauseButton.position(200, height + 20);
-    pauseButton.mousePressed(togglePlay);
-
-    prevFrameButton = createButton('Prev Frame');
-    prevFrameButton.position(550, height + 20);
-    prevFrameButton.mousePressed(prevFrame);
-
-    nextFrameButton = createButton('Next Frame');
-    nextFrameButton.position(650, height + 20);
-    nextFrameButton.mousePressed(nextFrame);
-
-    saveButton = createButton('Save Result');
-    saveButton.position(800, height + 20);
-    saveButton.mousePressed(() => saveResult('result.txt', currentFrame));
-    
-    greedyMeshingCheckbox = createCheckbox('Greedy Meshing', true);
-    greedyMeshingCheckbox.position(width + 20, 80);
-    mcCheckbox = createCheckbox('Run MC', true);
-    mcCheckbox.position(width + 20, 100);
-    emcCheckbox = createCheckbox('Run EMC', false);
-    emcCheckbox.position(width + 20, 120);
-
-    // SDF UI 요소 생성 / Create SDF UI elements
-    sdfCheckbox = createCheckbox('SDF mode', false);
-    sdfCheckbox.position(width + 20, 180);
-
-    squareCheckbox = createCheckbox('Square shape', false);
-    squareCheckbox.position(width + 20, 200);
-
-    text("Radius: ", width + 20, 215);
-    radiusSlider = createSlider(10, 200, radius, 10);
-    radiusSlider.position(width + 20, 220);
-    radiusSlider.input(updateRadius);
-
-    showGridCheckbox = createCheckbox('Show Grid', true);
-    showGridCheckbox.position(width + 20, 240);
-    showFieldCheckbox = createCheckbox('Show Field', false);
-    showFieldCheckbox.position(width + 20, 260);
-    showNormalCheckbox = createCheckbox('Show Normal', false);
-    showNormalCheckbox.position(width + 20, 280);
-    
-    // SPH UI 요소 생성 / Create SPH UI elements
-    SPHCheckbox = createCheckbox('SPH mode', false);
-    SPHCheckbox.position(width + 20, 320);
-    // 체크박스 상태가 변경될 때마다 onSPHModeChange 함수를 호출/ Call onSPHModeChange function whenever checkbox state changes
-    SPHCheckbox.changed(onSPHModeChange);
-
-    // SPH 가 활성화된 경우만 동작 / Only works when SPH is enabled
-    showParticlesCheckbox = createCheckbox('Show Particles', false);
-    showParticlesCheckbox.position(width + 20, 340);
-
-    numParticlesSlider = createSlider(100, 3000, numParticles, 10);
-    numParticlesSlider.position(width + 20, 360);
-    // 슬라이더를 조작하는 동안 실시간으로 updateParticleCount 함수를 호출합니다.
-    numParticlesSlider.input(updateParticleCount);
-
-    showAvgPosCheckbox = createCheckbox('Show Avg Position', false);
-    showAvgPosCheckbox.position(width + 20, 380);
-    showParticleNormalCheckbox = createCheckbox('Show Particle Normal', false);
-    showParticleNormalCheckbox.position(width + 20, 400);
-
-    smoothingRadiusSlider = createSlider(8, R*4, R, 4);
-    smoothingRadiusSlider.position(width + 20, 500);
-
-    levelsetRadiusSlider = createSlider(8, r*2, r, 4);
-    levelsetRadiusSlider.position(width + 20, 520);
-
-    densityfieldCheckbox = createCheckbox('Density Field', false);
-    densityfieldCheckbox.position(width + 20, 540);
-
-    densityDebugCheckbox = createCheckbox('Density Debug', false);
-    densityDebugCheckbox.position(width + 20, 560);
+    UI.init(State);
 }
 
 function draw() {
+    // State.runtime과 전역 변수 동기화
+    isPlaying = State.runtime.isPlaying;
     if (!isPlaying) return;
 
     background(255);
@@ -205,6 +146,11 @@ function draw() {
     triangleCount = 0;
     mcTriangleCount = 0;
     emcTriangleCount = 0;
+
+    // State.runtime 통계 카운터 초기화
+    State.runtime.triangleCount = 0;
+    State.runtime.mcTriangleCount = 0;
+    State.runtime.emcTriangleCount = 0;
 
     frameRate(speedSlider.value());
 
@@ -219,6 +165,7 @@ function draw() {
     } else { // default
         shape = "circle";
     }
+    State.simulation.shape = shape;
 
     // SDF 모드가 켜진 경우 / If SDF mode is enabled
     if (sdfCheckbox.checked()) {
@@ -236,10 +183,15 @@ function draw() {
             R = smoothingRadiusSlider.value();
             r = levelsetRadiusSlider.value();
 
+            // State.simulation 파라미터 갱신
+            State.simulation.R = R;
+            State.simulation.r = r;
+
         } else {
             // 유체 시뮬레이션 데이터 모드/ If fluid simulation data mode
             // 시뮬레이션 프레임 반복 / Loop all frames
             currentFrame = (frameCount - 1) % maxFiles;
+            State.runtime.currentFrame = currentFrame;
 
             // 모든 프레임 데이터를 미리 로드해서 particleData 배열에 저장함 
             // / All frame data is preloaded and stored in the particleData array
@@ -271,10 +223,13 @@ function draw() {
 
     pop();
 
+    // draw() 루프 종료 후 State.runtime에 최종 집계 동기화
+    State.runtime.triangleCount = triangleCount;
+    State.runtime.mcTriangleCount = mcTriangleCount;
+    State.runtime.emcTriangleCount = emcTriangleCount;
+
     // UI 표시 / Draw UI
     displayStats(currentFrame);
-
-
 }
 
 // =======================================================
@@ -331,21 +286,26 @@ function updateRadius() {
 
 // 재생/일시정지 토글 / Toggle play/pause
 function togglePlay() {
-    isPlaying = !isPlaying;
+    State.runtime.isPlaying = !State.runtime.isPlaying;
+    isPlaying = State.runtime.isPlaying;
     pauseButton.html(isPlaying ? 'Pause' : 'Play');
 }
 
 // 이전 프레임 / Previous frame
 function prevFrame() {
+    State.runtime.isPlaying = false;
     isPlaying = false;
-    currentFrame = (currentFrame - 1 + maxFiles) % maxFiles;
+    State.runtime.currentFrame = (State.runtime.currentFrame - 1 + maxFiles) % maxFiles;
+    currentFrame = State.runtime.currentFrame;
     redraw();
 }
 
 // 다음 프레임 / Next frame
 function nextFrame() {
+    State.runtime.isPlaying = false;
     isPlaying = false;
-    currentFrame = (currentFrame + 1) % maxFiles;
+    State.runtime.currentFrame = (State.runtime.currentFrame + 1) % maxFiles;
+    currentFrame = State.runtime.currentFrame;
     redraw();
 }
 
