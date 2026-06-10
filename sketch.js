@@ -446,11 +446,6 @@ function preload() {
     }
 }
 
-// 스무딩 커널 함수 / Smoothing kernel function
-function k(s) {
-    return max(0, pow((1 - s * s), 3));
-}
-
 // 밀도 계산 / Calculate density
 function calculateDensity(v) {
     let density = 0;
@@ -461,12 +456,6 @@ function calculateDensity(v) {
         }
     }
     return density;
-}
-
-// 밀도 커널 함수 / Density kernel function
-function densitykernel(distance, h) {
-    let density = 1 - (pow(distance, 2) / pow(h, 2));
-    return max(density, 0);
 }
 
 // 노말 계산 (SDF용) / Calculate normal (for SDF)
@@ -602,15 +591,6 @@ function calculateAveragePosition(currentGrid, R, wSumZero) {
         currentGrid.avg.x = currentGrid.x;
         currentGrid.avg.y = currentGrid.y;
     }
-}
-
-// 보간 함수 / Interpolation
-function itrp(p0, p1, v0, v1) {
-    if (v0 === 0) return p0;
-    if (v1 === 0) return p1;
-    if (abs(v1 - v0) < 0.00001) return p1;
-    let mu = (0 - v0) / (v1 - v0);
-    return createVector(p0.x + mu * (p1.x - p0.x), p0.y + mu * (p1.y - p0.y));
 }
 
 // 선 그리기 / Draw line

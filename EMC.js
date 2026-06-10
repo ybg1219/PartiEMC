@@ -121,34 +121,6 @@ class EMC extends MC {
 }
 
 /**
- * 2x2 행렬식 계산
- * Calculate determinant of 2x2 matrix
- * @returns {number}
- */
-function det(a, b, c, d) {
-    return a * d - b * c;
-}
-
-/**
- * 2x2 행렬의 역행렬 계산
- * Calculate inverse of 2x2 matrix
- * @returns {Array|null} 역행렬 또는 null / Inverse matrix or null
- */
-function inv2x2(a, b, c, d) {
-    let determinant = det(a, b, c, d);
-    if (abs(determinant) < 1e-10) {
-        // 역행렬 없음 / Not invertible
-        console.warn("Matrix is not invertible");
-        return null;
-    }
-    return [
-        [d / determinant, -b / determinant],
-        [-c / determinant, a / determinant]
-    ];
-}
-
-
-/**
  * 두 벡터와 노말로 교점 계산
  * Compute intersection point from two vectors and normals
  * @returns {p5.Vector}
