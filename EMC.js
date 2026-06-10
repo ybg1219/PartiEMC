@@ -61,7 +61,7 @@ class EMC extends MC {
                 let n = createVector(0, 0);
 
                 if (sdfCheckbox.checked()) {
-                    n = calculateNormalSDF(currentGrid.itrps[k], shape);
+                    n = calculateNormalSDF(currentGrid.itrps[k], shape, State.simulation.radius);
                 } else {
                     for (let pj of currentGrid.nearbyParticles) {
                         if (dist(currentGrid.itrps[k].x, currentGrid.itrps[k].y, pj.position.x, pj.position.y) <= d) {

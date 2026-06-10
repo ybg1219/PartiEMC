@@ -361,25 +361,7 @@ function calculateDensity(v) {
     return density;
 }
 
-// 노말 계산 (SDF용) / Calculate normal (for SDF)
-function calculateNormalSDF(v, shape) {
-    const dt = 0.1;
-    let nv = createVector(0, 0);
 
-    if (shape === "square") {
-        nv.x = squareSDF(v.x + dt, v.y) - squareSDF(v.x - dt, v.y);
-        nv.y = squareSDF(v.x, v.y + dt) - squareSDF(v.x, v.y - dt);
-    } else if (shape === "circle") {
-        nv.x = circleSDF(v.x + dt, v.y) - circleSDF(v.x - dt, v.y);
-        nv.y = circleSDF(v.x, v.y + dt) - circleSDF(v.x, v.y - dt);
-    } else {
-        console.error("Unknown shape for SDF normal calculation:", shape);
-        return createVector(0, 0);
-    }
-    nv.normalize();
-
-    return nv;
-}
 
 // 노말 계산 / Calculate normal
 function calculateNormal(v) {
@@ -388,7 +370,7 @@ function calculateNormal(v) {
         let d = p5.Vector.dist(v, pj.position);
         if (d <= State.config.gridSize * 2) {
             let relativePos = p5.Vector.sub(pj.position, v);
-            let val = kGrad(d, relativePos);
+            let val = kGrad(d, relativePos, R); // R 인수 추가
             normal.add(val);
         }
     }
@@ -396,48 +378,7 @@ function calculateNormal(v) {
     return normal;
 }
 
-// 커널 그라디언트 / Kernel gradient
-function kGrad(dist, relativePos) {
-    let coeff = 3.0 / (4.0 * PI * pow(R / 2, 4));
-    let q = dist / (R / 2);
-    let grad = createVector(relativePos.x, relativePos.y);
-    let w1 = (1.0 - q) * (1.0 - q);
-    let w2 = (2.0 - q) * (2.0 - q);
 
-    if (dist <= 0.0) {
-        grad.set(0, 0);
-    } else if (q < 1.0) {
-        grad.mult(coeff * (4.0 * w1 - w2) / dist);
-    } else {
-        grad.mult(-coeff * w2 / dist);
-    }
-    return grad;
-}
-
-// 원형 SDF 함수 / Circle SDF function
-// function circleSDF(x, y, cx, cy, radius) {
-//     const centerX = width / 2;
-//     const centerY = height / 2;
-//     // 원의 암시적 함수 / Implicit function of circle
-//     return pow(x - cx, 2) + pow(y - cy, 2) - pow(radius, 2);
-// }
-function circleSDF(x, y) {
-    const centerX = 0;
-    const centerY = 0;
-    // 원의 암시적 함수 / Implicit function of circle
-    return pow(x - centerX, 2) + pow(y - centerY, 2) - pow(radius, 2);
-}
-
-// 사각형 SDF 함수 / Square SDF function
-function squareSDF(x, y) {
-    // 캔버스 중심 기준 / Based on canvas center
-    const centerX = 0;
-    const centerY = 0;
-    const dx = abs(x - centerX) - radius;
-    const dy = abs(y - centerY) - radius;
-    // 사각형의 암시적 함수 / Implicit function of square
-    return min(max(dx, dy), 0.0) + sqrt(max(dx, 0.0) ** 2 + max(dy, 0.0) ** 2);
-}
 
 // SDF 레벨셋 계산 / Set levelset for SDF
 function setLevelsetSDF(shape) {
@@ -447,10 +388,10 @@ function setLevelsetSDF(shape) {
             currentGrid.field = 0;
             if (shape === "circle") {
                 // 원형 SDF / Circle SDF
-                currentGrid.field = circleSDF(currentGrid.x, currentGrid.y, width / 2, height / 2, radius);
+                currentGrid.field = circleSDF(currentGrid.x, currentGrid.y, width / 2, height / 2, State.simulation.radius);
             } else if (shape === "square") {
                 // 사각형 SDF / Square SDF
-                currentGrid.field = squareSDF(currentGrid.x, currentGrid.y, radius);
+                currentGrid.field = squareSDF(currentGrid.x, currentGrid.y, State.simulation.radius);
             } else {
                 // 에러 처리 / Error handling
                 console.error("Unknown shape for SDF:", shape);
@@ -496,18 +437,4 @@ function calculateAveragePosition(currentGrid, R, wSumZero) {
     }
 }
 
-// 선 그리기 / Draw line
-function drawLine(v1, v2) {
-    line(v1.x, v1.y, v2.x, v2.y);
-}
 
-// 화살표 그리기 / Draw arrow
-function drawArrow(cx, cy, len, angle) {
-    push();
-    translate(cx, cy);
-    rotate(radians(angle));
-    line(0, 0, len, 0);
-    line(len, 0, len - 4, -4);
-    line(len, 0, len - 4, 4);
-    pop();
-}
