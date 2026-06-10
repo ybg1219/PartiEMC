@@ -81,24 +81,39 @@ function initGrid() {
 
 // 각 그리드 셀에 인접한 입자들을 할당하는 함수
 function setNearbyParticles() {
-    // 그리드 내 인접 파티클 배열 초기화
+    // 1. 그리드 내 인접 파티클 배열 초기화
     for (let x = 0; x <= cols; x++) {
         for (let y = 0; y <= rows; y++) {
-            // .clear() -> 빈 배열 할당으로 대체
             grid[x][y].nearbyParticles = [];
         }
     }
 
-    // 각 파티클을 순회하며 인접 그리드에 할당
-    // for (Particle p : particles) -> for (let p of particles)
+    // 예외 처리: 그리드 데이터가 아직 생성되지 않았다면 중단
+    if (!grid || grid.length === 0 || !grid[0][0]) return;
+
+    // 2. 기준 크기를 하나로 통일
+    let gridSize = State.config.gridSize;
+
+    // 반경이 gridSize와 같으므로, 내 주변 상하좌우 1칸씩만 확인하면 충분합니다 (3x3 영역)
+    let range = 1;
+
+    // 3. 각 파티클을 순회하며 '주변 3x3 그리드'만 정밀 검사
     for (let p of particles) {
-        // 그리드 셀 범위를 좀 더 최적화하여 계산 부담을 줄일 수 있습니다.
-        // 여기서는 원본 코드의 로직을 그대로 따릅니다.
-        for (let x = 0; x <= cols; x++) {
-            for (let y = 0; y <= rows; y++) {
+        // 그리드 시작점(grid[0][0])을 기준으로 파티클이 몇 번째 칸 근처에 있는지 계산
+        let centerX = Math.round((p.position.x - grid[0][0].x) / gridSize);
+        let centerY = Math.round((p.position.y - grid[0][0].y) / gridSize);
+
+        // 중심점(centerX, centerY) 기준 주변 영역만 루프를 돕니다.
+        let startX = Math.max(0, centerX - range);
+        let endX = Math.min(cols, centerX + range);
+        let startY = Math.max(0, centerY - range);
+        let endY = Math.min(rows, centerY + range);
+
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                // 원본의 거리 필터링 방식을 그대로 유지하여 시각적 오류를 방지합니다.
                 let distance = dist(p.position.x, p.position.y, grid[x][y].x, grid[x][y].y);
-                if (distance <= State.config.gridSize) {
-                    // .add(p) -> .push(p)
+                if (distance <= gridSize) {
                     grid[x][y].nearbyParticles.push(p);
                 }
             }
