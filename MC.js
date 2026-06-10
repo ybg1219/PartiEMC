@@ -36,8 +36,8 @@ class MC {
                 for (let k = 0; k < 4; k++) {
                     let cornerVec = CornerTable[k];
                     grid[this.i][this.j].finalPoints[k] = createVector(
-                        grid[this.i][this.j].x + cornerVec.x * gridSize,
-                        grid[this.i][this.j].y + cornerVec.y * gridSize
+                        grid[this.i][this.j].x + cornerVec.x * State.config.gridSize,
+                        grid[this.i][this.j].y + cornerVec.y * State.config.gridSize
                     );
                 }
 
@@ -91,10 +91,10 @@ class MC {
                 let edgeCorner2 = CornerTable[CornerofEdgeTable[k][1]];
 
                 let edge0 = createVector(currentGrid.x, currentGrid.y);
-                edge0.add(p5.Vector.mult(edgeCorner1, gridSize));
+                edge0.add(p5.Vector.mult(edgeCorner1, State.config.gridSize));
 
                 let edge1 = createVector(currentGrid.x, currentGrid.y);
-                edge1.add(p5.Vector.mult(edgeCorner2, gridSize));
+                edge1.add(p5.Vector.mult(edgeCorner2, State.config.gridSize));
 
                 let v0 = currentGrid.densities[CornerofEdgeTable[k][0]];
                 let v1 = currentGrid.densities[CornerofEdgeTable[k][1]];
@@ -151,8 +151,8 @@ class MC {
         for (let n = 0; n < 4; n++) {
             let cornerVec = CornerTable[n];
             quad[n] = createVector(
-                grid[this.i][this.j].x + cornerVec.x * gridSize * this.quadSize.x,
-                grid[this.i][this.j].y + cornerVec.y * gridSize * this.quadSize.y
+                grid[this.i][this.j].x + cornerVec.x * State.config.gridSize * this.quadSize.x,
+                grid[this.i][this.j].y + cornerVec.y * State.config.gridSize * this.quadSize.y
             );
         }
 

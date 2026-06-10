@@ -80,7 +80,7 @@ const UI = {
         showParticlesCheckbox.position(width + 20, 340);
         state.ui.showParticlesCheckbox = showParticlesCheckbox;
 
-        numParticlesSlider = createSlider(100, 3000, numParticles, 10);
+        numParticlesSlider = createSlider(100, 3000, state.simulation.numParticles, 10);
         numParticlesSlider.position(width + 20, 360);
         numParticlesSlider.input(updateParticleCount);
         state.ui.numParticlesSlider = numParticlesSlider;

@@ -32,12 +32,12 @@ class Particle {
         fill(200, 200);
         if (densityfieldCheckbox.checked()) {
             // 밀도 기반 색상 매핑 / Density-based color mapping
-            // let colorValue = map(this.density, 0, maxDensity, 200, 50);
+            // let colorValue = map(this.density, 0, State.simulation.maxDensity, 200, 50);
             // stroke(150);
             // fill( colorValue, 200);
-            
-            let amount = map(this.density, 0, maxDensity, 0, 1);
-            let particleColor = lerpColor(lowDensityColor, highDensityColor, amount);
+
+            let amount = map(this.density, 0, State.simulation.maxDensity, 0, 1);
+            let particleColor = lerpColor(State.ui.lowDensityColor, State.ui.highDensityColor, amount);
             fill(particleColor);
 
         }
@@ -63,7 +63,7 @@ class Particle {
         let angle = degrees(this.normal.heading());
         stroke(250, 200, 0);
         strokeWeight(2);
-        drawArrow(this.position.x, this.position.y, gridSize, angle);
+        drawArrow(this.position.x, this.position.y, State.config.gridSize, angle);
     }
 }
 
@@ -84,11 +84,11 @@ function setpNormal() {
  * 모든 파티클의 밀도 계산 / Set densities for all particles
  */
 function setpDensities() {
-    maxDensity = 0;
+    State.simulation.maxDensity = 0;
     for (let pi of particles) {
         pi.density = calculateDensity(pi.position);
-        if (pi.density > maxDensity) {
-            maxDensity = pi.density;
+        if (pi.density > State.simulation.maxDensity) {
+            State.simulation.maxDensity = pi.density;
         }
     }
 }
@@ -118,7 +118,7 @@ function createParticles(num, radius, shape) {
     }
     // 남는 파티클 제거 / remove extra particles
     particles.length = num;
-    numParticles = particles.length;
+    State.simulation.numParticles = particles.length;
 }
 
 
@@ -137,7 +137,7 @@ function setSPHParticlePositions(positions) {
     }
     // 필요시 남는 파티클 제거 / Optionally remove extra particles
     particles.length = positions.length;
-    numParticles = particles.length;
+    State.simulation.numParticles = particles.length;
 }
 
 // =======================================================

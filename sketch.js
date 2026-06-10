@@ -2,28 +2,7 @@
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
-// =======================================================
-// Global Variables
-// =======================================================
-let gridSize = State.config.gridSize;      // 격자 크기 / Grid size
-let numParticles = State.config.initialParticles;// 입자 수 / Number of particles
-let cols, rows;         // 그리드 열/행 / Grid columns/rows
-let R = gridSize;       // 스무딩 커널 반경 / Smoothing kernel radius
-let r = R / 2;          // 레벨셋 반경 / Levelset radius
-let maxDensity = 0;
-
-let fileIndex = 0;      // 파일 인덱스 / File index
-let maxFiles = State.config.maxFiles;    // 최대 파일 개수 / Max file count
-
-let triangleCount = 0;
-let mcTriangleCount = 0;
-let emcTriangleCount = 0;
-
-let dataScaler = State.config.dataScaler;
-
 // Data and Object Storage
-let particles = [];          // Particle 객체 배열 / Particle array
-let grid;               // 그리드 객체 배열 / Grid array
 let particleData = [];
 
 // Class Instances
@@ -33,44 +12,6 @@ let emc;
 // Lookup Tables
 let CornerTable;
 let CornerofEdgeTable;
-
-// UI 관련 변수 / UI related variables
-let isPlaying = true; // 애니메이션 재생 상태 / Animation play state
-let speedSlider;      // 프레임 속도 슬라이더 / Frame rate slider
-let pauseButton;      // 일시정지/재생 버튼 / Pause/Play button
-let showGridCheckbox; // 그리드 표시 체크박스 / Show grid checkbox
-let showParticlesCheckbox; // 파티클 표시 체크박스 / Show particles checkbox
-let prevFrameButton;  // 이전 프레임 버튼 / Previous frame button
-let nextFrameButton;  // 다음 프레임 버튼 / Next frame button
-let saveButton;       // 결과 저장 버튼 / Save result button
-let currentFrame = 0; // 현재 프레임 / Current frame
-
-let showFieldCheckbox;           // 필드값 시각화 / Show field visualization
-let showAvgPosCheckbox;          // 평균 위치 시각화 / Show average position visualization
-let showNormalCheckbox;          // 노말 시각화 / Show normal visualization
-let showParticleNormalCheckbox;  // 입자 노말 시각화 / Show particle normal visualization
-
-let mcCheckbox;    // MC 실행 체크박스 / MC excute checkbox
-let emcCheckbox;   // EMC 실행 체크박스 / EMC excute checkbox
-let greedyMeshingCheckbox; // 그리디 메시징 체크박스 / Greedy meshing checkbox
-
-// SDF 관련 UI 변수 / SDF UI variables
-let sdfCheckbox;      // SDF 모드 체크박스 / SDF mode checkbox
-let squareCheckbox;   // 사각형 SDF 체크박스 / Square SDF checkbox
-let shape;            // 모양 정보 저장/ Shape info storage
-let radiusSlider;     // SDF 반경 슬라이더 / SDF radius slider
-let radius;           // 현재 SDF 반경 / Current SDF radius
-
-// SPH 관련 UI 변수 / SPH UI variables
-let SPHCheckbox;      // SPH 모드 체크박스 / SPH mode checkbox
-let numParticlesSlider; // 입자 수 슬라이더 / Number of particles slider
-let smoothingRadiusSlider; // 스무딩 반경 슬라이더 / Smoothing radius slider
-let levelsetRadiusSlider; // 레벨셋 반경 슬라이더 / Levelset radius slider
-
-let lowDensityColor;  // 낮은 밀도일 때의 색상
-let highDensityColor; // 높은 밀도일 때의 색상
-let densityfieldCheckbox; // 밀도 기반 필드 체크박스 / Density-based field checkbox
-let densityDebugCheckbox; // 밀도 디버그 체크박스 / Density debug checkbox
 
 
 // =======================================================
@@ -97,37 +38,39 @@ function setup() {
     ];
 
     frameRate(State.config.defaultFrameRate);
-    cols = width / gridSize;
-    rows = height / gridSize;
-    
+    cols = width / State.config.gridSize;
+    rows = height / State.config.gridSize;
+
     // State.simulation에 격자 수 동기화
     State.simulation.cols = cols;
     State.simulation.rows = rows;
-    
-    particles = new Array(numParticles);
+
+    particles = new Array(State.simulation.numParticles);
     State.simulation.particles = particles; // 배열 참조 공유
-    
+
     grid = Array.from({ length: cols + 1 }, () => new Array(rows + 1));
     State.simulation.grid = grid; // 배열 참조 공유
-    
+
     initGrid();
 
     // 기본 변수 설정 / Default variables setup
     shape = "circle";
     radius = State.config.defaultRadius;
-    
-    // State.simulation 파라미터 초기화
+
+    // State.simulation 파라미터 초기화 및 전역 호환 바인딩
     State.simulation.shape = shape;
-    State.simulation.R = gridSize;
-    State.simulation.r = gridSize / 2;
-    
-    lowDensityColor = color(0, 100, 255);   // 파란색
-    highDensityColor = color(255, 50, 0);    // 붉은색
+    R = State.config.gridSize;
+    r = State.config.gridSize / 2;
+    State.simulation.R = R;
+    State.simulation.r = r;
 
-    if (!particles || particles.length !== numParticles) {
-        createParticles(numParticles, radius, shape);
+    State.ui.lowDensityColor = color(0, 100, 255);   // 파란색
+    State.ui.highDensityColor = color(255, 50, 0);    // 붉은색
 
-        console.log(`${numParticles} particles created.`);
+    if (!particles || particles.length !== State.simulation.numParticles) {
+        createParticles(State.simulation.numParticles, radius, shape);
+
+        console.log(`${State.simulation.numParticles} particles created.`);
     }
 
 
@@ -179,7 +122,7 @@ function draw() {
 
         if (SPHCheckbox.checked()) {
             // SPH 모드가 켜진 경우 / If SPH mode is enabled
-            numParticles = numParticlesSlider.value();
+            State.simulation.numParticles = numParticlesSlider.value();
             R = smoothingRadiusSlider.value();
             r = levelsetRadiusSlider.value();
 
@@ -190,7 +133,7 @@ function draw() {
         } else {
             // 유체 시뮬레이션 데이터 모드/ If fluid simulation data mode
             // 시뮬레이션 프레임 반복 / Loop all frames
-            currentFrame = (frameCount - 1) % maxFiles;
+            currentFrame = (frameCount - 1) % State.config.maxFiles;
             State.runtime.currentFrame = currentFrame;
 
             // 모든 프레임 데이터를 미리 로드해서 particleData 배열에 저장함 
@@ -244,9 +187,9 @@ function onSPHModeChange() {
         // SPH 모드가 켜지는 순간 SDF 모드 false (동시 실행 방지) / When SPH mode is enabled SDF mode false (prevent simultaneous execution)
         sdfCheckbox.checked(false);
         // 현재 슬라이더 값으로 파티클을 생성. / Create particles with current slider value
-        numParticles = numParticlesSlider.value();
-        createParticles(numParticles, radius, shape);
-        console.log(`SPH mode ON. ${numParticles} particles created.`);
+        State.simulation.numParticles = numParticlesSlider.value();
+        createParticles(State.simulation.numParticles, radius, shape);
+        console.log(`SPH mode ON. ${State.simulation.numParticles} particles created.`);
     } else {
         // SPH 모드가 꺼지는 순간:
         console.log("SPH mode OFF.");
@@ -262,10 +205,10 @@ function onSPHModeChange() {
 function updateParticleCount() {
     // SPH 모드가 활성화된 상태일 때만 실행.
     if (SPHCheckbox.checked()) {
-        numParticles = numParticlesSlider.value();
+        State.simulation.numParticles = numParticlesSlider.value();
 
         // 슬라이더 값에 맞춰 파티클 배열을 새로 생성. / Recreate particle array to match slider value
-        createParticles(numParticles, radius, shape);
+        createParticles(State.simulation.numParticles, radius, shape);
     }
 }
 
@@ -275,7 +218,7 @@ function updateRadius() {
         radius = radiusSlider.value();
 
         // 슬라이더 값에 맞춰 파티클 배열을 새로 생성. / Recreate particle array to match slider value
-        createParticles(numParticles, radius, shape);
+        createParticles(State.simulation.numParticles, radius, shape);
     }
 }
 
@@ -295,7 +238,7 @@ function togglePlay() {
 function prevFrame() {
     State.runtime.isPlaying = false;
     isPlaying = false;
-    State.runtime.currentFrame = (State.runtime.currentFrame - 1 + maxFiles) % maxFiles;
+    State.runtime.currentFrame = (State.runtime.currentFrame - 1 + State.config.maxFiles) % State.config.maxFiles;
     currentFrame = State.runtime.currentFrame;
     redraw();
 }
@@ -304,7 +247,7 @@ function prevFrame() {
 function nextFrame() {
     State.runtime.isPlaying = false;
     isPlaying = false;
-    State.runtime.currentFrame = (State.runtime.currentFrame + 1) % maxFiles;
+    State.runtime.currentFrame = (State.runtime.currentFrame + 1) % State.config.maxFiles;
     currentFrame = State.runtime.currentFrame;
     redraw();
 }
@@ -324,7 +267,7 @@ function updateFrameRate() {
 function displayStats(currentFrame) {
     fill(0);
     textSize(30);
-    text("Frame: " + (currentFrame + 1) + " / " + maxFiles, 50, 50);
+    text("Frame: " + (currentFrame + 1) + " / " + State.config.maxFiles, 50, 50);
     text("Triangle Count: " + triangleCount, 50, 90);
     text("EMC Triangle Count: " + emcTriangleCount, 50, 130);
 }
@@ -355,7 +298,7 @@ function displayGridsAndParticles() {
             }
         }
     }
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < State.simulation.numParticles; i++) {
         if (showParticlesCheckbox.checked()) {
             particles[i].display();
         }
@@ -372,14 +315,14 @@ function setParticlesFromData(lines) {
     if (!particles || particles.length !== lines.length) {
         particles = new Array(lines.length);
     }
-    numParticles = lines.length;
-    particles.length = numParticles;
+    State.simulation.numParticles = lines.length;
+    particles.length = State.simulation.numParticles;
 
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < State.simulation.numParticles; i++) {
         if (lines[i]) {
             let pos = lines[i].split(" ").map(Number);
-            let x = (-0.5 + pos[0]) * dataScaler;
-            let y = -(-0.5 + pos[1]) * dataScaler;
+            let x = (-0.5 + pos[0]) * State.config.dataScaler;
+            let y = -(-0.5 + pos[1]) * State.config.dataScaler;
             if (particles[i]) {
                 // 기존 파티클 위치만 갱신 / Update position of existing particle
                 particles[i].position.set(x, y);
@@ -390,9 +333,9 @@ function setParticlesFromData(lines) {
         }
     }
     // 남는 파티클 제거 / Remove extra particles
-    if (particles.length > numParticles-1) {
-        particles.length = numParticles-1;
-        numParticles = particles.length;
+    if (particles.length > State.simulation.numParticles - 1) {
+        particles.length = State.simulation.numParticles - 1;
+        State.simulation.numParticles = particles.length;
     }
 }
 
@@ -400,7 +343,7 @@ function setParticlesFromData(lines) {
 // p5.js 내장 함수입니다. setup() 전에 자동 실행됩니다.
 // This is a p5.js built-in function. It runs automatically before setup().
 function preload() {
-    for (let i = 0; i < maxFiles; i++) {
+    for (let i = 0; i < State.config.maxFiles; i++) {
         let filename = i + ".txt";
         particleData[i] = loadStrings("data/" + filename);
     }
@@ -411,8 +354,8 @@ function calculateDensity(v) {
     let density = 0;
     for (let pj of particles) {
         let d = p5.Vector.dist(v, pj.position);
-        if (d <= R*2 && d >= 0.01) {
-            density += densitykernel(d, R*2);
+        if (d <= R * 2 && d >= 0.01) {
+            density += densitykernel(d, R * 2);
         }
     }
     return density;
@@ -443,7 +386,7 @@ function calculateNormal(v) {
     let normal = createVector(0, 0);
     for (let pj of particles) {
         let d = p5.Vector.dist(v, pj.position);
-        if (d <= gridSize * 2) {
+        if (d <= State.config.gridSize * 2) {
             let relativePos = p5.Vector.sub(pj.position, v);
             let val = kGrad(d, relativePos);
             normal.add(val);

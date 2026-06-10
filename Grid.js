@@ -25,7 +25,7 @@ class Grid {
     displayGrid() {
         stroke(200);
         noFill();
-        rect(this.x, this.y, gridSize, gridSize);
+        rect(this.x, this.y, State.config.gridSize, State.config.gridSize);
     }
 
     // 평균 위치를 시각화
@@ -47,7 +47,7 @@ class Grid {
                 strokeWeight(2);
                 // drawArrow(시작점 x, 시작점 y, 길이, 각도)
                 let angle = degrees(n.heading());
-                drawArrow(this.itrps[k].x, this.itrps[k].y, gridSize, angle);
+                drawArrow(this.itrps[k].x, this.itrps[k].y, State.config.gridSize, angle);
             }
         }
     }
@@ -72,8 +72,8 @@ function initGrid() {
     // int i = 0 -> let i = 0
     for (let i = 0; i <= cols; i++) {
         for (let j = 0; j <= rows; j++) {
-            let gridX = i * gridSize - width / 2;
-            let gridY = j * gridSize - height / 2;
+            let gridX = i * State.config.gridSize - width / 2;
+            let gridY = j * State.config.gridSize - height / 2;
             grid[i][j] = new Grid(gridX, gridY);
         }
     }
@@ -97,7 +97,7 @@ function setNearbyParticles() {
         for (let x = 0; x <= cols; x++) {
             for (let y = 0; y <= rows; y++) {
                 let distance = dist(p.position.x, p.position.y, grid[x][y].x, grid[x][y].y);
-                if (distance <= gridSize) {
+                if (distance <= State.config.gridSize) {
                     // .add(p) -> .push(p)
                     grid[x][y].nearbyParticles.push(p);
                 }

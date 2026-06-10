@@ -39,7 +39,7 @@ class EMC extends MC {
 
     // 주변 파티클들의 법선 벡터 평균 계산
     calcNBNormal(nbParticles, pos) {
-        let d = gridSize * 0.5;
+        let d = State.config.gridSize * 0.5;
         let n = createVector(0, 0);
         for (let pj of nbParticles) {
             if (dist(pos.x, pos.y, pj.position.x, pj.position.y) <= d) {
@@ -57,7 +57,7 @@ class EMC extends MC {
             currentGrid.normals[k] = createVector(0, 0);
             // 엣지에 교차점이 있는 경우에만 법선 벡터 계산
             if ((currentGrid.edgeBits & (1 << (3 - k))) !== 0) {
-                let d = gridSize;
+                let d = State.config.gridSize;
                 let n = createVector(0, 0);
 
                 if (sdfCheckbox.checked()) {
@@ -100,8 +100,8 @@ class EMC extends MC {
                 let projDist = this.projection(n, itrpCenter, pj.position);
 
                 // 유효성 검사 (원본 코드의 논리 오류 수정: && -> ||)
-                if (projDist < 0 || projDist > gridSize) continue;
-                if (p5.Vector.dist(pj.position, itrpCenter) > gridSize) continue;
+                if (projDist < 0 || projDist > State.config.gridSize) continue;
+                if (p5.Vector.dist(pj.position, itrpCenter) > State.config.gridSize) continue;
 
                 if (maxDist < projDist) {
                     maxDist = projDist;
