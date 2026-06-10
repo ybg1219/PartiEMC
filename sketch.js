@@ -146,9 +146,9 @@ function draw() {
             setParticlesFromData(frameData);
         }
 
-        setpDensities();
-        setpNormal();
-        setNearbyParticles();
+        setNearbyParticles(); // 1. 격자 기반 공간 분할 맵을 최신 파티클 위치로 선행 업데이트
+        setpDensities();      // 2. 격자 정보를 참조하여 밀도 연산 진행 (O(N))
+        setpNormal();         // 3. 격자 정보를 참조하여 법선 연산 진행 (O(N))
         setLevelset(2 * R, 2 * r);
     }
 
@@ -352,10 +352,28 @@ function preload() {
 // 밀도 계산 / Calculate density
 function calculateDensity(v) {
     let density = 0;
-    for (let pj of particles) {
-        let d = p5.Vector.dist(v, pj.position);
-        if (d <= R * 2 && d >= 0.01) {
-            density += densitykernel(d, R * 2);
+    const gridSize = State.config.gridSize;
+
+    // v 좌표가 위치한 격자 상의 정수 셀 인덱스 역산
+    let centerX = Math.round((v.x - grid[0][0].x) / gridSize);
+    let centerY = Math.round((v.y - grid[0][0].y) / gridSize);
+
+    // 반경 R * 2에 따라 주변 몇 칸(그리드)까지 탐색할지 결정
+    let range = Math.ceil((R * 2) / gridSize);
+    let startX = Math.max(0, centerX - range);
+    let endX = Math.min(cols, centerX + range);
+    let startY = Math.max(0, centerY - range);
+    let endY = Math.min(rows, centerY + range);
+
+    // 전체 파티클 순회가 아닌 주변 3x3 ~ 5x5 인접 셀 내 입자만 대조
+    for (let x = startX; x <= endX; x++) {
+        for (let y = startY; y <= endY; y++) {
+            for (let pj of grid[x][y].nearbyParticles) {
+                let d = p5.Vector.dist(v, pj.position);
+                if (d <= R * 2 && d >= 0.01) {
+                    density += densitykernel(d, R * 2);
+                }
+            }
         }
     }
     return density;
@@ -366,12 +384,30 @@ function calculateDensity(v) {
 // 노말 계산 / Calculate normal
 function calculateNormal(v) {
     let normal = createVector(0, 0);
-    for (let pj of particles) {
-        let d = p5.Vector.dist(v, pj.position);
-        if (d <= State.config.gridSize * 2) {
-            let relativePos = p5.Vector.sub(pj.position, v);
-            let val = kGrad(d, relativePos, R); // R 인수 추가
-            normal.add(val);
+    const gridSize = State.config.gridSize;
+
+    // v 좌표가 위치한 격자 상의 정수 셀 인덱스 역산
+    let centerX = Math.round((v.x - grid[0][0].x) / gridSize);
+    let centerY = Math.round((v.y - grid[0][0].y) / gridSize);
+
+    // 반경 gridSize * 2에 대응하여 주변 2칸 영역 탐색 (5x5 범위)
+    let range = 2;
+    let startX = Math.max(0, centerX - range);
+    let endX = Math.min(cols, centerX + range);
+    let startY = Math.max(0, centerY - range);
+    let endY = Math.min(rows, centerY + range);
+
+    // 주변 격자 내 입자들만 수집하여 계산
+    for (let x = startX; x <= endX; x++) {
+        for (let y = startY; y <= endY; y++) {
+            for (let pj of grid[x][y].nearbyParticles) {
+                let d = p5.Vector.dist(v, pj.position);
+                if (d <= gridSize * 2) {
+                    let relativePos = p5.Vector.sub(pj.position, v);
+                    let val = kGrad(d, relativePos, R); // R 인수 추가
+                    normal.add(val);
+                }
+            }
         }
     }
     normal.normalize();

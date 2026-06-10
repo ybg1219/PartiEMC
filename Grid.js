@@ -93,6 +93,7 @@ function setNearbyParticles() {
 
     // 2. 기준 크기를 하나로 통일
     let gridSize = State.config.gridSize;
+    let gridSizeSq = gridSize * gridSize;
 
     // 반경이 gridSize와 같으므로, 내 주변 상하좌우 1칸씩만 확인하면 충분합니다 (3x3 영역)
     let range = 1;
@@ -111,9 +112,11 @@ function setNearbyParticles() {
 
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
-                // 원본의 거리 필터링 방식을 그대로 유지하여 시각적 오류를 방지합니다.
-                let distance = dist(p.position.x, p.position.y, grid[x][y].x, grid[x][y].y);
-                if (distance <= gridSize) {
+                // 제곱근 연산을 생략하여 성능을 극대화합니다.
+                let dx = p.position.x - grid[x][y].x;
+                let dy = p.position.y - grid[x][y].y;
+                let distSq = dx * dx + dy * dy;
+                if (distSq <= gridSizeSq) {
                     grid[x][y].nearbyParticles.push(p);
                 }
             }

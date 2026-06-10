@@ -40,9 +40,13 @@ class EMC extends MC {
     // 주변 파티클들의 법선 벡터 평균 계산
     calcNBNormal(nbParticles, pos) {
         let d = State.config.gridSize * 0.5;
+        let dSq = d * d;
         let n = createVector(0, 0);
         for (let pj of nbParticles) {
-            if (dist(pos.x, pos.y, pj.position.x, pj.position.y) <= d) {
+            let dx = pos.x - pj.position.x;
+            let dy = pos.y - pj.position.y;
+            let distSq = dx * dx + dy * dy;
+            if (distSq <= dSq) {
                 n.add(pj.normal);
             }
         }
@@ -53,18 +57,22 @@ class EMC extends MC {
     // 교차점(itrp)에서의 법선 벡터 계산
     setNormals() {
         let currentGrid = grid[this.i][this.j];
+        let d = State.config.gridSize;
+        let dSq = d * d;
         for (let k = 0; k < 4; k++) {
             currentGrid.normals[k] = createVector(0, 0);
             // 엣지에 교차점이 있는 경우에만 법선 벡터 계산
             if ((currentGrid.edgeBits & (1 << (3 - k))) !== 0) {
-                let d = State.config.gridSize;
                 let n = createVector(0, 0);
 
                 if (sdfCheckbox.checked()) {
                     n = calculateNormalSDF(currentGrid.itrps[k], shape, State.simulation.radius);
                 } else {
                     for (let pj of currentGrid.nearbyParticles) {
-                        if (dist(currentGrid.itrps[k].x, currentGrid.itrps[k].y, pj.position.x, pj.position.y) <= d) {
+                        let dx = currentGrid.itrps[k].x - pj.position.x;
+                        let dy = currentGrid.itrps[k].y - pj.position.y;
+                        let distSq = dx * dx + dy * dy;
+                        if (distSq <= dSq) {
                             n.add(pj.normal);
                         }
                     }
@@ -95,13 +103,18 @@ class EMC extends MC {
 
             // 가장 멀리 있는 파티클을 찾기 위한 초기화
             let far = new Particle(itrpCenter.x, itrpCenter.y);
+            let limitSq = State.config.gridSize * State.config.gridSize;
 
             for (let pj of current.nearbyParticles) {
                 let projDist = this.projection(n, itrpCenter, pj.position);
 
                 // 유효성 검사 (원본 코드의 논리 오류 수정: && -> ||)
                 if (projDist < 0 || projDist > State.config.gridSize) continue;
-                if (p5.Vector.dist(pj.position, itrpCenter) > State.config.gridSize) continue;
+                
+                let dx = pj.position.x - itrpCenter.x;
+                let dy = pj.position.y - itrpCenter.y;
+                let distSq = dx * dx + dy * dy;
+                if (distSq > limitSq) continue;
 
                 if (maxDist < projDist) {
                     maxDist = projDist;
