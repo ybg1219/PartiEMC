@@ -5,21 +5,21 @@ function windowResized() {
 // =======================================================
 // Global Variables
 // =======================================================
-let gridSize = 16;      // 격자 크기 / Grid size
-let numParticles = 1160;// 입자 수 / Number of particles
+let gridSize = State.config.gridSize;      // 격자 크기 / Grid size
+let numParticles = State.config.initialParticles;// 입자 수 / Number of particles
 let cols, rows;         // 그리드 열/행 / Grid columns/rows
 let R = gridSize;       // 스무딩 커널 반경 / Smoothing kernel radius
 let r = R / 2;          // 레벨셋 반경 / Levelset radius
 let maxDensity = 0;
 
 let fileIndex = 0;      // 파일 인덱스 / File index
-let maxFiles = 1026;    // 최대 파일 개수 / Max file count
+let maxFiles = State.config.maxFiles;    // 최대 파일 개수 / Max file count
 
 let triangleCount = 0;
 let mcTriangleCount = 0;
 let emcTriangleCount = 0;
 
-let dataScaler = 800;
+let dataScaler = State.config.dataScaler;
 
 // Data and Object Storage
 let particles = [];          // Particle 객체 배열 / Particle array
@@ -78,7 +78,7 @@ let densityDebugCheckbox; // 밀도 디버그 체크박스 / Density debug check
 // =======================================================
 
 function setup() {
-    createCanvas(1024, 1024);
+    createCanvas(State.config.canvasWidth, State.config.canvasHeight);
 
     mc = new MC();
     emc = new EMC();
@@ -96,7 +96,7 @@ function setup() {
         [3, 0]
     ];
 
-    frameRate(24);
+    frameRate(State.config.defaultFrameRate);
     cols = width / gridSize;
     rows = height / gridSize;
     particles = new Array(numParticles);
@@ -105,7 +105,7 @@ function setup() {
 
     // 기본 변수 설정 / Default variables setup
     shape = "circle";
-    radius = 200;
+    radius = State.config.defaultRadius;
     
     lowDensityColor = color(0, 100, 255);   // 파란색
     highDensityColor = color(255, 50, 0);    // 붉은색
@@ -118,7 +118,7 @@ function setup() {
 
 
     // UI 요소 생성 / Create UI elements
-    speedSlider = createSlider(1, 60, 24, 1);
+    speedSlider = createSlider(1, 60, State.config.defaultFrameRate, 1);
     speedSlider.position(50, height + 20);
 
     pauseButton = createButton('Pause');
